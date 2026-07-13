@@ -26,32 +26,24 @@ export async function unlockAudio() {
 
 const audioCache = new Map();
 
-export async function playAudio(url) {
-  const ctx = getCtx();
-  if (ctx.state === 'suspended') {
-    await ctx.resume();
-  }
-
+export function playAudio(url) {
   try {
-    let arrayBuffer;
+    let base;
     if (audioCache.has(url)) {
-      arrayBuffer = audioCache.get(url);
+      base = audioCache.get(url);
     } else {
-      const response = await fetch(url);
-      arrayBuffer = await response.arrayBuffer();
-      audioCache.set(url, arrayBuffer);
+      base = new Audio(url);
+      base.preload = 'auto';
+      audioCache.set(url, base);
     }
 
-    const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
-    const source = ctx.createBufferSource();
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.8, ctx.currentTime);
-    source.buffer = audioBuffer;
-    source.connect(gain);
-    gain.connect(ctx.destination);
-    source.start(ctx.currentTime);
+    const clone = base.cloneNode();
+    clone.volume = 0.8;
+    clone.play().catch((e) => {
+      console.error('Audio play failed:', url, e);
+    });
   } catch (e) {
-    /* audio load failed */
+    console.error('Audio error:', url, e);
   }
 }
 

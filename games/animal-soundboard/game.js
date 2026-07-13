@@ -13,22 +13,23 @@ function updateLangButtons() {
   btnId.classList.toggle('active', currentLang === 'id');
 }
 
-btnEn.addEventListener('pointerdown', (e) => {
-  e.stopPropagation();
-  currentLang = 'en';
+function setLanguage(lang) {
+  currentLang = lang;
   updateLangButtons();
   document.querySelectorAll('.animal-card__name').forEach((el, i) => {
     el.textContent = currentAnimals[i][currentLang];
   });
+  speak(lang === 'en' ? 'English' : 'Bahasa Indonesia', lang);
+}
+
+btnEn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setLanguage('en');
 });
 
-btnId.addEventListener('pointerdown', (e) => {
+btnId.addEventListener('click', (e) => {
   e.stopPropagation();
-  currentLang = 'id';
-  updateLangButtons();
-  document.querySelectorAll('.animal-card__name').forEach((el, i) => {
-    el.textContent = currentAnimals[i][currentLang];
-  });
+  setLanguage('id');
 });
 
 updateLangButtons();
