@@ -28,8 +28,8 @@ Exports reusable utilities:
 ### `js/audio.js`
 Dual-mode audio system:
 - **Synthesized sounds** via `AudioSynth` object: pop, boing, ding, whoosh, chime, squeak + animal synth sounds (meow, woof, moo, quack, cluck, baa)
-- **MP3 playback** via `playAudio(url)` — fetches, decodes with Web Audio API, caches in Map
-- **Audio unlock** via `unlockAudio()` — must be called on first user gesture for mobile
+- **MP3 playback** via `playAudio(url)` — creates `new Audio(url)`, calls `.play()`. Fresh Audio per play (no cloneNode, no caching). Error logged to console.
+- **Audio unlock** via `unlockAudio()` — must be called on first user gesture for mobile. NOT awaited in game code (fire-and-forget) so it doesn't block the user gesture.
 
 ### `js/speech.js`
 Web Speech API wrapper:
@@ -51,10 +51,18 @@ Bilingual data for non-animal games:
 
 ### `js/safeguard.js`
 Toddler-proofing module:
-- Prevents pinch/gesture zoom via event listeners
-- Blocks double-tap zoom (300ms detection window)
+- Prevents pinch/gesture zoom via `gesturestart/change/end` listeners
+- Blocks double-tap zoom via `touchstart` listener (400ms window) — **skips interactive elements** (`button, a, input, [role="button"]`) so button clicks work
+- `dblclick` event prevention as fallback
 - `beforeunload` warning on page close
 - `history.pushState` + `popstate` blocks back button
+
+## Math Verification Pattern
+Language toggle requires solving a random addition problem (1+1 through 8+8):
+- Modal overlay with input field + OK/Cancel buttons
+- Uses `pointerdown` (not `click`) for button events
+- Only applies language change if answer matches
+- Pattern can be reused for any settings that shouldn't change accidentally
 
 ## Asset Strategy
 
@@ -65,11 +73,12 @@ Toddler-proofing module:
 ### Audio
 - **Real sounds**: MP3 files in `assets/audio/animals/` from mixkit.co (free license)
 - **Synthesized effects**: Web Audio API oscillators in `js/audio.js`
-- Audio is cached in a Map after first fetch for instant replay
+- MP3s played via HTML5 `Audio` element (not Web Audio API decodeAudioData)
 
 ### CSS
 - `css/style.css` — shared base (hub, game header, responsive breakpoints)
-- `touch-action: manipulation` prevents browser zoom gestures
+- `touch-action: manipulation` on `*` (universal selector) prevents browser zoom on ALL elements
+- `-webkit-text-size-adjust: 100%` on `html` prevents text size inflation on Chrome Android
 - `overscroll-behavior: none` prevents pull-to-refresh
 
 ## Naming Conventions

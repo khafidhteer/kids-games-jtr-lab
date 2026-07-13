@@ -13,6 +13,7 @@ A collection of up to 20 lightweight browser games designed for children aged 2â
 - Shared assets in `/js/`, `/assets/audio/`, `/assets/svg/`
 - Games use ES modules (`type="module"`) to import shared code
 - Anti-zoom, anti-close safeguards for toddler-proof usage
+- Math-gated language toggle to prevent accidental switches
 
 ## Constraints
 - Target: modern browsers (Chrome, Safari, Firefox, Edge)
@@ -26,7 +27,8 @@ A collection of up to 20 lightweight browser games designed for children aged 2â
 - HTML5 Canvas for drawing games
 - CSS Grid/Flexbox for DOM-based games
 - SVG for UI elements and decorations
-- Web Audio API for synthesized sound effects
+- Web Audio API for synthesized sound effects only
+- HTML5 `Audio` element for MP3 playback (not Web Audio API decodeAudioData)
 - Web Speech API for voiceover (EN/ID)
 - Mixkit open-source MP3s for real animal sounds
 - CSS3 for layout, transitions, and animations
@@ -37,3 +39,4 @@ A collection of up to 20 lightweight browser games designed for children aged 2â
 - Domain: kids-games.jtr-lab.com (A record â†’ 43.129.54.230)
 - Static files served from `/home/ubuntu/kids-games/`
 - Auto-renewal via certbot scheduled task
+- Git repo: `git@github.com:khafidhteer/kids-games-jtr-lab.git` (main branch)
