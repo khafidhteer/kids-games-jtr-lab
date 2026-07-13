@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Magic Canvas — Kids Games</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-header">
+    <a href="../../index.html" class="game-header__btn" aria-label="Back to games">
+      <svg><use href="../../assets/svg/icons.svg#icon-back"/></svg>
+    </a>
+    <div class="game-header__btns">
+      <button class="game-header__btn" id="sound-toggle" aria-label="Toggle sound">
+        <svg><use href="../../assets/svg/icons.svg#icon-sound-on"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <div class="magic-hint" id="hint">Tap anywhere!</div>
+
+  <script type="module">
+    import { initSafeguards } from '../../js/safeguard.js';
+    initSafeguards();
+  </script>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
