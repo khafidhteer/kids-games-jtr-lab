@@ -5,6 +5,7 @@ export function initSafeguards() {
 
   let lastTouchStart = 0;
   document.addEventListener('touchstart', (e) => {
+    if (e.target.closest('button, a, input, [role="button"]')) return;
     const now = Date.now();
     if (now - lastTouchStart <= 400) {
       e.preventDefault();

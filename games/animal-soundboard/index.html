@@ -26,6 +26,18 @@
 
   <div class="soundboard" id="soundboard"></div>
 
+  <div class="math-modal" id="math-modal">
+    <div class="math-modal__box">
+      <p class="math-modal__title">Solve to switch language</p>
+      <p class="math-modal__question" id="math-question">3 + 4 = ?</p>
+      <input class="math-modal__input" id="math-answer" type="number" inputmode="numeric" autocomplete="off" placeholder="?" />
+      <div class="math-modal__btns">
+        <button class="math-modal__btn math-modal__btn--ok" id="math-submit">OK</button>
+        <button class="math-modal__btn math-modal__btn--cancel" id="math-cancel">X</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { initSafeguards } from '../../js/safeguard.js';
     initSafeguards();

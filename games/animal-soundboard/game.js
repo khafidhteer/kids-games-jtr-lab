@@ -4,32 +4,83 @@ import { speak } from '../../js/speech.js';
 
 let currentLang = 'en';
 let audioReady = false;
+let nameEls = [];
 const board = document.getElementById('soundboard');
 const btnEn = document.getElementById('lang-en');
 const btnId = document.getElementById('lang-id');
+const modal = document.getElementById('math-modal');
+const mathQuestion = document.getElementById('math-question');
+const mathAnswer = document.getElementById('math-answer');
+const mathSubmit = document.getElementById('math-submit');
+const mathCancel = document.getElementById('math-cancel');
+
+let mathA = 0, mathB = 0, mathSum = 0;
+let pendingLang = null;
 
 function updateLangButtons() {
   btnEn.classList.toggle('active', currentLang === 'en');
   btnId.classList.toggle('active', currentLang === 'id');
 }
 
-function setLanguage(lang) {
+function applyLanguage(lang) {
   currentLang = lang;
   updateLangButtons();
-  document.querySelectorAll('.animal-card__name').forEach((el, i) => {
+  nameEls.forEach((el, i) => {
     el.textContent = currentAnimals[i][currentLang];
   });
   speak(lang === 'en' ? 'English' : 'Bahasa Indonesia', lang);
 }
 
-btnEn.addEventListener('click', (e) => {
+function showMathModal(lang) {
+  mathA = Math.floor(Math.random() * 8) + 1;
+  mathB = Math.floor(Math.random() * 8) + 1;
+  mathSum = mathA + mathB;
+  pendingLang = lang;
+  mathQuestion.textContent = `${mathA} + ${mathB} = ?`;
+  mathAnswer.value = '';
+  modal.classList.add('visible');
+  mathAnswer.focus();
+}
+
+function hideMathModal() {
+  modal.classList.remove('visible');
+  pendingLang = null;
+}
+
+mathSubmit.addEventListener('pointerdown', (e) => {
   e.stopPropagation();
-  setLanguage('en');
+  const val = parseInt(mathAnswer.value, 10);
+  if (val === mathSum && pendingLang) {
+    applyLanguage(pendingLang);
+  }
+  hideMathModal();
 });
 
-btnId.addEventListener('click', (e) => {
+mathCancel.addEventListener('pointerdown', (e) => {
   e.stopPropagation();
-  setLanguage('id');
+  hideMathModal();
+});
+
+mathAnswer.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const val = parseInt(mathAnswer.value, 10);
+    if (val === mathSum && pendingLang) {
+      applyLanguage(pendingLang);
+    }
+    hideMathModal();
+  }
+});
+
+btnEn.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  if (currentLang === 'en') return;
+  showMathModal('en');
+});
+
+btnId.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  if (currentLang === 'id') return;
+  showMathModal('id');
 });
 
 updateLangButtons();
@@ -47,11 +98,14 @@ currentAnimals.forEach((animal) => {
     <div class="animal-card__name">${animal[currentLang]}</div>
   `;
 
-  card.addEventListener('pointerdown', async (e) => {
+  const nameEl = card.querySelector('.animal-card__name');
+  nameEls.push(nameEl);
+
+  card.addEventListener('pointerdown', (e) => {
     e.preventDefault();
 
     if (!audioReady) {
-      await unlockAudio();
+      unlockAudio();
       audioReady = true;
     }
 

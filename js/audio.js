@@ -24,22 +24,11 @@ export async function unlockAudio() {
   audioUnlocked = true;
 }
 
-const audioCache = new Map();
-
 export function playAudio(url) {
   try {
-    let base;
-    if (audioCache.has(url)) {
-      base = audioCache.get(url);
-    } else {
-      base = new Audio(url);
-      base.preload = 'auto';
-      audioCache.set(url, base);
-    }
-
-    const clone = base.cloneNode();
-    clone.volume = 0.8;
-    clone.play().catch((e) => {
+    const audio = new Audio(url);
+    audio.volume = 0.8;
+    audio.play().catch((e) => {
       console.error('Audio play failed:', url, e);
     });
   } catch (e) {
