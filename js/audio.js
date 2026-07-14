@@ -24,13 +24,20 @@ export async function unlockAudio() {
   audioUnlocked = true;
 }
 
+let currentAudio = null;
+
 export function playAudio(url) {
   try {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+    }
     const audio = new Audio(url);
     audio.volume = 0.8;
     audio.play().catch((e) => {
       console.error('Audio play failed:', url, e);
     });
+    currentAudio = audio;
   } catch (e) {
     console.error('Audio error:', url, e);
   }

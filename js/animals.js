@@ -11,14 +11,14 @@ const ALL_ANIMALS = [
   { en: 'Lion',     id: 'Singa',     emoji: '🦁', sound: 'lion.mp3' },
   { en: 'Wolf',     id: 'Serigala',  emoji: '🐺', sound: 'wolf.mp3' },
   { en: 'Bird',     id: 'Burung',    emoji: '🐦', sound: 'bird.mp3' },
-  { en: 'Duck',     id: 'Bebek',     emoji: '🐤', sound: 'chicken.mp3' },
-  { en: 'Rabbit',   id: 'Kelinci',   emoji: '🐰', sound: 'cat.mp3' },
-  { en: 'Sheep',    id: 'Domba',     emoji: '🐑', sound: 'cow.mp3' },
-  { en: 'Frog',     id: 'Katak',     emoji: '🐸', sound: 'bird.mp3' },
-  { en: 'Bear',     id: 'Beruang',   emoji: '🐻', sound: 'lion.mp3' },
-  { en: 'Elephant', id: 'Gajah',     emoji: '🐘', sound: 'horse.mp3' },
-  { en: 'Owl',      id: 'Burung Hantu', emoji: '🦉', sound: 'bird.mp3' },
-  { en: 'Fox',      id: 'Rubah',     emoji: '🦊', sound: 'dog.mp3' }
+  { en: 'Duck',     id: 'Bebek',     emoji: '🐤', sound: 'duck.mp3' },
+  { en: 'Rabbit',   id: 'Kelinci',   emoji: '🐰', sound: 'rabbit.mp3' },
+  { en: 'Sheep',    id: 'Domba',     emoji: '🐑', sound: 'sheep.mp3' },
+  { en: 'Frog',     id: 'Katak',     emoji: '🐸', sound: 'frog.mp3' },
+  { en: 'Bear',     id: 'Beruang',   emoji: '🐻', sound: 'bear.mp3' },
+  { en: 'Elephant', id: 'Gajah',     emoji: '🐘', sound: 'elephant.mp3' },
+  { en: 'Owl',      id: 'Burung Hantu', emoji: '🦉', sound: 'owl.mp3' },
+  { en: 'Fox',      id: 'Rubah',     emoji: '🦊', sound: 'fox.mp3' }
 ];
 
 export function getAnimalSoundUrl(filename) {

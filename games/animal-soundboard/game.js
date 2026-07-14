@@ -85,9 +85,9 @@ btnId.addEventListener('pointerdown', (e) => {
 
 updateLangButtons();
 
-const currentAnimals = getRandomAnimals(6);
+const currentAnimals = getRandomAnimals(15);
 
-const cols = currentAnimals.length <= 4 ? 2 : currentAnimals.length <= 6 ? 3 : 4;
+const cols = currentAnimals.length <= 4 ? 2 : currentAnimals.length <= 6 ? 3 : currentAnimals.length <= 12 ? 4 : 5;
 board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
 currentAnimals.forEach((animal) => {

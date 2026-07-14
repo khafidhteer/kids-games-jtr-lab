@@ -1,11 +1,11 @@
 .soundboard {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  padding: 80px 20px 20px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  padding: 80px 16px 20px;
   width: 100%;
   height: 100vh;
-  max-width: 600px;
+  max-width: 700px;
   margin: 0 auto;
   align-content: start;
   overflow-y: auto;
@@ -16,14 +16,29 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 24px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.12);
   border: 3px solid rgba(255, 255, 255, 0.08);
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
-  padding: 12px 8px;
+  padding: 8px 4px;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+}
+
+.animal-card__emoji {
+  font-size: clamp(2rem, 8vw, 3.5rem);
+  line-height: 1;
+  margin-bottom: 4px;
+  transition: transform 0.2s ease;
+}
+
+.animal-card__name {
+  font-size: clamp(0.7rem, 2.5vw, 1rem);
+  font-weight: 700;
+  text-align: center;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
 }
 
 .animal-card:hover,
@@ -44,13 +59,6 @@
   100% { transform: scale(1); }
 }
 
-.animal-card__emoji {
-  font-size: clamp(3rem, 10vw, 5rem);
-  line-height: 1;
-  margin-bottom: 6px;
-  transition: transform 0.2s ease;
-}
-
 .animal-card.bounce .animal-card__emoji {
   animation: emojiWiggle 0.5s ease;
 }
@@ -63,21 +71,12 @@
   100% { transform: rotate(0deg); }
 }
 
-.animal-card__name {
-  font-size: clamp(0.9rem, 3vw, 1.3rem);
-  font-weight: 700;
-  text-align: center;
-  opacity: 0.9;
-  transition: opacity 0.2s ease;
-}
-
 .animal-card.speaking .animal-card__name {
   opacity: 1;
   text-decoration: underline;
   text-underline-offset: 4px;
 }
 
-/* Language toggle */
 .game-header__btns {
   gap: 8px;
 }
@@ -113,10 +112,40 @@
   font-size: 1.2rem;
 }
 
+@media (max-width: 600px) {
+  .soundboard {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    padding: 72px 12px 12px;
+  }
+
+  .animal-card__emoji {
+    font-size: clamp(1.8rem, 7vw, 2.8rem);
+  }
+
+  .animal-card__name {
+    font-size: clamp(0.6rem, 2vw, 0.85rem);
+  }
+}
+
 @media (max-width: 400px) {
   .soundboard {
-    gap: 10px;
-    padding: 70px 12px 12px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 65px 8px 8px;
+  }
+
+  .animal-card {
+    padding: 6px 3px;
+    border-radius: 14px;
+  }
+
+  .animal-card__emoji {
+    font-size: clamp(1.5rem, 6vw, 2.2rem);
+  }
+
+  .animal-card__name {
+    font-size: clamp(0.55rem, 1.8vw, 0.75rem);
   }
 
   .lang-toggle {
@@ -130,13 +159,6 @@
 
   .lang-toggle__flag {
     font-size: 1.4rem;
-  }
-}
-
-@media (min-width: 600px) {
-  .soundboard {
-    padding-top: 100px;
-    gap: 20px;
   }
 }
 
