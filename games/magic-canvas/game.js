@@ -1,5 +1,22 @@
-import { COLORS, randomColor, randomBetween, randomShape, Shapes } from '../../js/shared.js';
+import { randomBetween } from '../../js/shared.js';
 import { AudioSynth, unlockAudio } from '../../js/audio.js';
+
+const COLORS = [
+  '#E74C3C',
+  '#3498DB',
+  '#F1C40F',
+  '#2ECC71',
+  '#E67E22',
+  '#9B59B6',
+  '#FF6B9D',
+  '#8B5E3C',
+  '#FFFFFF',
+];
+
+const SHAPE_NAMES = [
+  'circle', 'square', 'triangle', 'rectangle', 'star',
+  'heart', 'oval', 'diamond', 'hexagon', 'crescent'
+];
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -10,6 +27,33 @@ let soundOn = true;
 let firstTap = false;
 let audioReady = false;
 const shapes = [];
+
+const svgCache = new Map();
+
+function loadSvg(name, color) {
+  const key = `${name}-${color}`;
+  if (svgCache.has(key)) {
+    return Promise.resolve(svgCache.get(key));
+  }
+
+  return fetch(`assets/svg/${name}.svg`)
+    .then(res => res.text())
+    .then(svgText => {
+      const colored = svgText.replace(/currentColor/g, color);
+      const blob = new Blob([colored], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          svgCache.set(key, img);
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.src = url;
+      });
+    });
+}
 
 function resize() {
   canvas.width = window.innerWidth * window.devicePixelRatio;
@@ -32,22 +76,22 @@ soundToggle.addEventListener('click', (e) => {
 });
 
 class FloatingShape {
-  constructor(x, y) {
+  constructor(x, y, name, color) {
     this.x = x;
     this.y = y;
     this.size = randomBetween(30, 70);
-    this.color = randomColor();
-    this.shape = randomShape();
+    this.color = color;
+    this.name = name;
+    this.img = null;
     this.opacity = 1;
     this.vx = randomBetween(-1.5, 1.5);
     this.vy = randomBetween(-3, -1);
     this.rotation = 0;
-    this.rotationSpeed = randomBetween(-0.03, 0.03);
+    this.rotationSpeed = randomBetween(-0.008, 0.008);
     this.life = 1;
     this.decay = randomBetween(0.004, 0.008);
     this.scale = 0.1;
     this.targetScale = 1;
-    this.popped = false;
   }
 
   update() {
@@ -68,7 +112,7 @@ class FloatingShape {
   }
 
   draw(ctx) {
-    if (this.opacity <= 0) return;
+    if (this.opacity <= 0 || !this.img) return;
 
     ctx.save();
     ctx.globalAlpha = this.opacity;
@@ -79,7 +123,8 @@ class FloatingShape {
     ctx.shadowColor = this.color;
     ctx.shadowBlur = 20;
 
-    Shapes[this.shape](ctx, 0, 0, this.size, this.color);
+    const s = this.size;
+    ctx.drawImage(this.img, -s, -s, s * 2, s * 2);
 
     ctx.shadowBlur = 0;
     ctx.restore();
@@ -91,7 +136,17 @@ class FloatingShape {
 }
 
 async function spawnShape(x, y) {
-  shapes.push(new FloatingShape(x, y));
+  const name = SHAPE_NAMES[Math.floor(Math.random() * SHAPE_NAMES.length)];
+  const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+
+  try {
+    const img = await loadSvg(name, color);
+    const shape = new FloatingShape(x, y, name, color);
+    shape.img = img;
+    shapes.push(shape);
+  } catch (e) {
+    // fallback silently
+  }
 
   if (!audioReady) {
     await unlockAudio();
