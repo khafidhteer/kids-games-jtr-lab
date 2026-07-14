@@ -87,7 +87,7 @@ class FloatingShape {
     this.vx = randomBetween(-1.5, 1.5);
     this.vy = randomBetween(-3, -1);
     this.rotation = 0;
-    this.rotationSpeed = randomBetween(-0.008, 0.008);
+    this.rotationSpeed = randomBetween(-0.0015, 0.0015);
     this.life = 1;
     this.decay = randomBetween(0.004, 0.008);
     this.scale = 0.1;
