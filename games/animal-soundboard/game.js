@@ -91,8 +91,10 @@ currentAnimals.forEach((animal) => {
   const card = document.createElement('div');
   card.className = 'animal-card';
   card.innerHTML = `
-    <div class="animal-card__emoji">${animal.emoji}</div>
-    <div class="animal-card__name">${animal[currentLang]}</div>
+    <div class="animal-card__inner">
+      <div class="animal-card__emoji">${animal.emoji}</div>
+      <div class="animal-card__name">${animal[currentLang]}</div>
+    </div>
   `;
 
   const nameEl = card.querySelector('.animal-card__name');
