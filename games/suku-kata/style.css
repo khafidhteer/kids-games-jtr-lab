@@ -1,0 +1,640 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Fredoka One', 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+.suku-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  padding-top: 70px;
+  padding-bottom: 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.suku-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  padding: 10px 16px;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  flex: 1;
+  align-content: center;
+}
+
+.suku-grid:has(.suku-card:only-child) {
+  grid-template-columns: 1fr;
+  max-width: 280px;
+}
+
+.suku-grid:has(.suku-card:nth-last-child(2):first-child) {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.suku-grid:has(.suku-card:nth-last-child(3):first-child) {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.suku-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  padding: 16px 12px;
+  min-height: 140px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  transition: transform 0.15s ease;
+  animation: cardEnter 0.35s ease-out both;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, var(--card-bg-1, #ccc), var(--card-bg-2, #ddd)) border-box;
+  border: 12px solid transparent;
+}
+
+.suku-card__emoji {
+  font-size: clamp(2.5rem, 7vw, 4rem);
+  line-height: 1;
+  transition: transform 0.2s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.suku-card__text {
+  font-size: clamp(3rem, 10vw, 5.5rem);
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.1;
+  color: #000;
+  position: relative;
+  z-index: 1;
+}
+
+.suku-card.tapped {
+  animation: cardTap 0.25s ease;
+}
+
+.suku-card.tapped .suku-card__emoji {
+  animation: emojiWiggle 0.25s ease;
+}
+
+.suku-card.speaking .suku-card__text {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(0,0,0,0.3);
+  text-decoration-thickness: 2px;
+}
+
+.suku-card.float {
+  animation: cardFloat 3s ease-in-out infinite;
+}
+
+.suku-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 10px 0;
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.suku-nav__arrow {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.3);
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 0.15s ease, background 0.15s ease;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.suku-nav__arrow:active {
+  transform: scale(0.9);
+  background: rgba(0,0,0,0.45);
+}
+
+.suku-nav__arrow.hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.suku-nav__dots {
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.suku-nav__dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.4);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  pointer-events: auto;
+}
+
+.suku-nav__dot.active {
+  background: #fff;
+  border-color: #fff;
+  transform: scale(1.2);
+}
+
+.suku-nav__dot:active {
+  transform: scale(0.85);
+}
+
+@media (orientation: landscape) and (min-width: 600px) {
+  .suku-wrapper {
+    padding-top: 64px;
+    padding-bottom: 60px;
+  }
+
+  .suku-grid {
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 8px;
+    padding: 10px 20px;
+    max-width: none;
+  }
+
+  .suku-grid:has(.suku-card:only-child) {
+    grid-template-columns: 1fr;
+    max-width: 220px;
+  }
+
+  .suku-card {
+    min-height: 100px;
+    padding: 10px 6px;
+  }
+
+  .suku-card__emoji {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+  }
+
+  .suku-card__text {
+    font-size: clamp(2.2rem, 7vw, 3.8rem);
+  }
+}
+
+@media (min-width: 900px) {
+  .suku-card {
+    min-height: 160px;
+    padding: 20px 16px;
+  }
+
+  .suku-card__emoji {
+    font-size: clamp(2.8rem, 6vw, 4.2rem);
+  }
+
+  .suku-card__text {
+    font-size: clamp(3.5rem, 9vw, 6rem);
+  }
+}
+
+.math-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+}
+
+.math-modal.visible {
+  display: flex;
+}
+
+.math-modal__box {
+  background: #2a2a4a;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 24px;
+  padding: 28px 24px;
+  text-align: center;
+  min-width: 260px;
+  max-width: 90vw;
+}
+
+.math-modal__title {
+  font-size: 0.95rem;
+  opacity: 0.8;
+  margin-bottom: 12px;
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: 600;
+}
+
+.math-modal__question {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.math-modal__input {
+  width: 80px;
+  padding: 10px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-align: center;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  -moz-appearance: textfield;
+  font-family: inherit;
+}
+
+.math-modal__input::-webkit-inner-spin-button,
+.math-modal__input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.math-modal__input:focus {
+  border-color: rgba(255,255,255,0.6);
+}
+
+.math-modal__btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.math-modal__btn {
+  padding: 10px 28px;
+  border-radius: 16px;
+  border: 2px solid rgba(255,255,255,0.2);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  pointer-events: auto;
+  font-family: inherit;
+}
+
+.math-modal__btn--ok {
+  background: rgba(80,180,80,0.7);
+  border-color: rgba(80,180,80,0.5);
+}
+
+.math-modal__btn--ok:active {
+  transform: scale(0.95);
+}
+
+.math-modal__btn--cancel {
+  background: rgba(180,80,80,0.7);
+  border-color: rgba(180,80,80,0.5);
+}
+
+.math-modal__btn--cancel:active {
+  transform: scale(0.95);
+}
+
+.settings-panel {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-panel.visible {
+  display: flex;
+}
+
+.settings-panel__box {
+  background: #2a2a4a;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 24px;
+  padding: 28px 24px;
+  text-align: center;
+  min-width: 300px;
+  max-width: 90vw;
+}
+
+.settings-panel__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.settings-panel__label {
+  display: block;
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-bottom: 6px;
+  text-align: left;
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: 600;
+}
+
+.settings-panel__mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.settings-panel__mode label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 400;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.settings-panel__mode input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #4FACFE;
+  cursor: pointer;
+}
+
+.settings-panel__textarea {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 1.1rem;
+  font-family: 'Fredoka One', 'Segoe UI', sans-serif;
+  outline: none;
+  resize: vertical;
+  min-height: 80px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+
+.settings-panel__textarea:focus {
+  border-color: rgba(255,255,255,0.5);
+}
+
+.settings-panel__textarea::placeholder {
+  color: rgba(255,255,255,0.35);
+}
+
+.settings-panel__hint {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  margin-bottom: 12px;
+  text-align: left;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.settings-panel__btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.settings-panel__btn {
+  padding: 10px 24px;
+  border-radius: 16px;
+  border: 2px solid rgba(255,255,255,0.2);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  font-family: inherit;
+  pointer-events: auto;
+}
+
+.settings-panel__btn--apply {
+  background: rgba(60,130,220,0.7);
+  border-color: rgba(60,130,220,0.5);
+}
+
+.settings-panel__btn--apply:active {
+  transform: scale(0.95);
+}
+
+.settings-panel__btn--cancel {
+  background: rgba(180,80,80,0.7);
+  border-color: rgba(180,80,80,0.5);
+}
+
+.settings-panel__btn--cancel:active {
+  transform: scale(0.95);
+}
+
+.mode-indicator {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  opacity: 0.5;
+  z-index: 50;
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+  background: rgba(0,0,0,0.2);
+  padding: 4px 12px;
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+}
+
+.celebration-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  pointer-events: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.celebration-overlay.visible {
+  display: flex;
+  animation: celebFade 1.5s ease-out forwards;
+}
+
+.celebration-overlay__text {
+  font-size: clamp(2rem, 8vw, 4rem);
+  text-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  animation: celebBounce 0.6s ease;
+}
+
+.celebration-overlay__emoji {
+  font-size: clamp(3rem, 12vw, 6rem);
+  display: block;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+@keyframes cardEnter {
+  0%   { opacity: 0; transform: scale(0.7) translateY(20px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes cardFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+@keyframes cardTap {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.15); }
+  50%  { transform: scale(0.9); }
+  75%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes emojiWiggle {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(-12deg); }
+  50%  { transform: rotate(8deg); }
+  75%  { transform: rotate(-4deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes celebFade {
+  0%   { opacity: 1; transform: scale(0.8); }
+  50%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.2); }
+}
+
+@keyframes celebBounce {
+  0%   { transform: scale(0.3); opacity: 0; }
+  50%  { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.ios-fullscreen-hint {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+}
+
+.ios-fullscreen-hint.visible {
+  display: flex;
+}
+
+.ios-fullscreen-hint__box {
+  text-align: center;
+  max-width: 320px;
+  padding: 30px 24px;
+}
+
+.ios-fullscreen-hint__icon {
+  font-size: 4rem;
+  margin-bottom: 12px;
+}
+
+.ios-fullscreen-hint__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.ios-fullscreen-hint__text {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.ios-fullscreen-hint__btn {
+  padding: 12px 32px;
+  border-radius: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ios-fullscreen-hint__btn:active {
+  transform: scale(0.95);
+}
+
+.shuffle-btn {
+  position: fixed;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  padding: 10px 24px;
+  border-radius: 24px;
+  border: 2px solid rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Fredoka One', 'Segoe UI', sans-serif;
+  transition: transform 0.15s ease, background 0.15s ease;
+  pointer-events: auto;
+}
+
+.shuffle-btn:active {
+  transform: translateX(-50%) scale(0.92);
+  background: rgba(0,0,0,0.45);
+}
+
+.shuffle-btn.hidden {
+  display: none;
+}
