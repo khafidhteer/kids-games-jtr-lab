@@ -34,22 +34,31 @@ function ensureVoice(lang) {
   return true;
 }
 
+export function primeSpeech() {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(' ');
+  u.volume = 0;
+  speechSynthesis.speak(u);
+}
+
 export function speak(text, lang = 'en') {
   if (!window.speechSynthesis) return;
   ensureVoice(lang);
 
-  setTimeout(() => {
-    try {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = LANG_MAP[lang] || lang;
-      if (preferredVoice) utterance.voice = preferredVoice;
-      utterance.rate = 0.85;
-      utterance.pitch = 1.1;
-      utterance.volume = 1;
-      speechSynthesis.cancel();
-      speechSynthesis.speak(utterance);
-    } catch (e) {
-      /* speech not supported */
-    }
-  }, 100);
+  try {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = LANG_MAP[lang] || lang;
+    if (preferredVoice) utterance.voice = preferredVoice;
+    utterance.rate = 0.85;
+    utterance.pitch = 1.1;
+    utterance.volume = 1;
+
+    utterance.onerror = () => {};
+
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+  } catch (e) {
+    /* speech not supported */
+  }
 }

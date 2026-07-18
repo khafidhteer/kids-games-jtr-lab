@@ -1,6 +1,6 @@
 import { getRandomItems } from '../../js/categories.js';
 import { unlockAudio, AudioSynth } from '../../js/audio.js';
-import { speak } from '../../js/speech.js';
+import { speak, primeSpeech } from '../../js/speech.js';
 
 const CATEGORY = 'buildings';
 
@@ -181,6 +181,7 @@ function renderBoard(items) {
 
       if (!audioReady) {
         unlockAudio();
+        primeSpeech(currentLang);
         audioReady = true;
       }
 
