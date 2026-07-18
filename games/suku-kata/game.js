@@ -167,8 +167,8 @@ function renderPage() {
 
 function onCardTap(el, card) {
   if (!audioReady) {
-    unlockAudio();
     primeSpeech('id');
+    unlockAudio();
     audioReady = true;
   }
 
@@ -178,12 +178,10 @@ function onCardTap(el, card) {
 
   AudioSynth.pop();
 
-  setTimeout(() => {
-    if (soundOn) {
-      el.classList.add('speaking');
-      speak(card.syllable, 'id');
-    }
-  }, 200);
+  if (soundOn) {
+    el.classList.add('speaking');
+    speak(card.syllable, 'id');
+  }
 
   setTimeout(() => {
     el.classList.remove('tapped', 'speaking');

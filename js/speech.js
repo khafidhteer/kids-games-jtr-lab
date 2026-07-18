@@ -1,5 +1,3 @@
-import { getCtx } from './audio.js';
-
 export const LANG_MAP = {
   en: 'en-US',
   id: 'id-ID'
@@ -44,14 +42,10 @@ export function primeSpeech() {
 
 export function speak(text, lang = 'en') {
   if (!window.speechSynthesis) return;
+  if (!text) return;
   ensureVoice(lang);
 
   try {
-    const ctx = getCtx();
-    if (ctx && ctx.state === 'running') {
-      ctx.suspend();
-    }
-
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = LANG_MAP[lang] || lang;
     if (preferredVoice) utterance.voice = preferredVoice;
@@ -59,21 +53,8 @@ export function speak(text, lang = 'en') {
     utterance.pitch = 1.1;
     utterance.volume = 1;
 
-    utterance.onend = () => {
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume();
-      }
-    };
-    utterance.onerror = () => {
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume();
-      }
-    };
-
     speechSynthesis.cancel();
-    setTimeout(() => {
-      speechSynthesis.speak(utterance);
-    }, 50);
+    speechSynthesis.speak(utterance);
   } catch (e) {
     /* speech not supported */
   }

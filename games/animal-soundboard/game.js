@@ -178,8 +178,8 @@ function renderBoard(animals) {
       e.preventDefault();
 
       if (!audioReady) {
-        unlockAudio();
         primeSpeech(currentLang);
+        unlockAudio();
         audioReady = true;
       }
 
@@ -189,10 +189,8 @@ function renderBoard(animals) {
 
       playAudio(getAnimalSoundUrl(animal.sound));
 
-      setTimeout(() => {
-        card.classList.add('speaking');
-        speak(animal[currentLang], currentLang);
-      }, 400);
+      card.classList.add('speaking');
+      speak(animal[currentLang], currentLang);
 
       setTimeout(() => {
         card.classList.remove('bounce', 'speaking');
