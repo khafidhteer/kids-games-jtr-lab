@@ -1,0 +1,272 @@
+.soundboard {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 10px;
+  padding: 80px 14px 14px;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.animal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: rgba(180, 100, 255, 0.12);
+  border: 3px solid rgba(180, 100, 255, 0.08);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  padding: 6px;
+  height: 100%;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.animal-card__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 80%;
+  width: 100%;
+}
+
+.animal-card__emoji {
+  font-size: clamp(2rem, 6vw, 4rem);
+  line-height: 1;
+  margin-bottom: 4px;
+  transition: transform 0.2s ease;
+}
+
+.animal-card__name {
+  font-size: clamp(0.65rem, 2vw, 1.1rem);
+  font-weight: 700;
+  text-align: center;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+
+.animal-card:hover,
+.animal-card:active {
+  transform: scale(1.06);
+  background: rgba(180, 100, 255, 0.22);
+}
+
+.animal-card.bounce {
+  animation: animalBounce 0.5s ease;
+}
+
+@keyframes animalBounce {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.2) rotate(-5deg); }
+  50%  { transform: scale(0.95) rotate(3deg); }
+  75%  { transform: scale(1.08) rotate(-2deg); }
+  100% { transform: scale(1); }
+}
+
+.animal-card.bounce .animal-card__emoji {
+  animation: emojiWiggle 0.5s ease;
+}
+
+@keyframes emojiWiggle {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(-15deg); }
+  50%  { transform: rotate(10deg); }
+  75%  { transform: rotate(-5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animal-card.speaking .animal-card__name {
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.game-header__btns {
+  gap: 8px;
+}
+
+.lang-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border-radius: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.lang-toggle:active {
+  transform: scale(0.95);
+}
+
+.lang-toggle.active {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+}
+
+.lang-toggle__flag {
+  font-size: 1.2rem;
+}
+
+@media (max-width: 700px) {
+  .soundboard {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 74px 10px 10px;
+    max-width: 600px;
+  }
+
+  .animal-card__emoji {
+    font-size: clamp(2rem, 6vw, 4rem);
+  }
+
+  .animal-card__name {
+    font-size: clamp(0.65rem, 2vw, 1.1rem);
+  }
+}
+
+@media (max-width: 450px) {
+  .soundboard {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 66px 6px 6px;
+  }
+
+  .animal-card {
+    padding: 4px;
+    border-radius: 12px;
+  }
+
+  .animal-card__emoji {
+    font-size: clamp(4rem, 12vw, 8rem);
+  }
+
+  .animal-card__name {
+    font-size: clamp(1.3rem, 4vw, 2.2rem);
+  }
+
+  .lang-toggle {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .lang-toggle__label {
+    display: none;
+  }
+
+  .lang-toggle__flag {
+    font-size: 1.4rem;
+  }
+}
+
+.math-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+}
+
+.math-modal.visible {
+  display: flex;
+}
+
+.math-modal__box {
+  background: #2a2a4a;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  padding: 28px 24px;
+  text-align: center;
+  min-width: 260px;
+  max-width: 90vw;
+}
+
+.math-modal__title {
+  font-size: 0.95rem;
+  opacity: 0.8;
+  margin-bottom: 12px;
+}
+
+.math-modal__question {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.math-modal__input {
+  width: 80px;
+  padding: 10px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-align: center;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  -moz-appearance: textfield;
+}
+
+.math-modal__input::-webkit-inner-spin-button,
+.math-modal__input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.math-modal__input:focus {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.math-modal__btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.math-modal__btn {
+  padding: 10px 28px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  pointer-events: auto;
+}
+
+.math-modal__btn--ok {
+  background: rgba(80, 180, 80, 0.7);
+  border-color: rgba(80, 180, 80, 0.5);
+}
+
+.math-modal__btn--ok:active {
+  transform: scale(0.95);
+}
+
+.math-modal__btn--cancel {
+  background: rgba(180, 80, 80, 0.7);
+  border-color: rgba(180, 80, 80, 0.5);
+}
+
+.math-modal__btn--cancel:active {
+  transform: scale(0.95);
+}

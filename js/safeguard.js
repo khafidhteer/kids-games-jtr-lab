@@ -17,11 +17,6 @@ export function initSafeguards() {
     e.preventDefault();
   });
 
-  window.addEventListener('beforeunload', (e) => {
-    e.preventDefault();
-    e.returnValue = '';
-  });
-
   history.pushState(null, '', location.href);
   window.addEventListener('popstate', () => {
     history.pushState(null, '', location.href);

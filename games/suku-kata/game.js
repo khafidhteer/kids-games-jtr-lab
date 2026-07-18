@@ -5,7 +5,6 @@ import { speak } from '../../js/speech.js';
 const STORAGE_KEY = 'suku_kata_settings';
 
 const grid = document.getElementById('grid');
-const nav = document.getElementById('nav');
 const prevBtn = document.getElementById('prev');
 const nextBtn = document.getElementById('next');
 const dotsContainer = document.getElementById('dots');
@@ -25,6 +24,10 @@ const settingsPanel = document.getElementById('settings-panel');
 const parentInput = document.getElementById('parent-input');
 const settingsApply = document.getElementById('settings-apply');
 const settingsCancel = document.getElementById('settings-cancel');
+const helpBtn = document.getElementById('help-btn');
+const helpModal = document.getElementById('help-modal');
+const helpClose = document.getElementById('help-close');
+const backBtn = document.getElementById('back-btn');
 
 const iosHint = document.getElementById('ios-hint');
 const iosHintBtn = document.getElementById('ios-hint-btn');
@@ -32,29 +35,51 @@ const iosHintBtn = document.getElementById('ios-hint-btn');
 const celebration = document.getElementById('celebration');
 
 let audioReady = false;
+let pendingHelp = false;
+let pendingBack = false;
 let soundOn = true;
 let mode = 'random';
 let parentSyllables = [];
 let currentCards = [];
 let currentPage = 0;
 let totalPages = 0;
-let cardsPerPage = 4;
+let cardsPerPage = 1;
+let cardsAuto = false;
 let touchStartX = 0;
 let touchEndX = 0;
+
+const measureSpan = document.createElement('span');
+measureSpan.style.cssText = 'position:fixed;visibility:hidden;white-space:nowrap;font-family:"Fredoka One","Segoe UI",sans-serif;font-size:100px;font-weight:500;line-height:1.1;';
+document.body.appendChild(measureSpan);
+
+function getTextScale(syllable) {
+  measureSpan.textContent = 'ba';
+  const baseline = measureSpan.offsetWidth;
+  measureSpan.textContent = syllable;
+  const actual = measureSpan.offsetWidth;
+  return Math.max(0.75, Math.min(1.3, (actual / baseline) * 0.85 + 0.15));
+}
 
 function getSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
-  return { mode: 'random', parentSyllables: [] };
+  return { mode: 'random', parentSyllables: [], cardsPerPage: 1, cardsAuto: false };
 }
 
 function saveSettings() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode, parentSyllables }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    mode,
+    parentSyllables,
+    cardsPerPage: cardsAuto ? 0 : cardsPerPage,
+    cardsAuto,
+  }));
 }
 
 function getCardsPerPage() {
+  if (!cardsAuto && cardsPerPage > 0) return cardsPerPage;
+
   const isLandscape = window.matchMedia('(orientation: landscape) and (min-width: 600px)').matches;
   if (isLandscape) return 13;
 
@@ -68,6 +93,8 @@ function generateCards() {
   const settings = getSettings();
   mode = settings.mode || 'random';
   parentSyllables = settings.parentSyllables || [];
+  cardsAuto = settings.cardsAuto !== undefined ? settings.cardsAuto : false;
+  cardsPerPage = settings.cardsPerPage || 1;
 
   let source;
   if (mode === 'parent' && parentSyllables.length > 0) {
@@ -84,7 +111,7 @@ function generateCards() {
   }
 
   currentCards = source;
-  cardsPerPage = getCardsPerPage();
+  cardsPerPage = Math.max(1, getCardsPerPage());
   currentPage = 0;
   totalPages = Math.ceil(currentCards.length / cardsPerPage);
 
@@ -104,18 +131,26 @@ function renderPage() {
 
   grid.innerHTML = '';
   pageCards.forEach((card, i) => {
+    const textScale = getTextScale(card.syllable);
+
     const el = document.createElement('div');
     el.className = 'suku-card float';
     el.style.animationDelay = `${i * 0.06}s`;
+    el.style.setProperty('--text-scale', textScale);
     const [c1, c2] = nextColor();
     el.style.setProperty('--card-bg-1', c1);
     el.style.setProperty('--card-bg-2', c2);
+
+    const cue = card.cue
+      ? `<div class="suku-card__cue">${card.cue}</div>`
+      : '';
 
     const emoji = card.emoji
       ? `<div class="suku-card__emoji">${card.emoji}</div>`
       : '';
 
     el.innerHTML = `
+      ${cue}
       ${emoji}
       <div class="suku-card__text">${card.syllable}</div>
     `;
@@ -174,7 +209,14 @@ function checkComplete() {
 
 function renderDots() {
   dotsContainer.innerHTML = '';
+  dotsContainer.style.cssText = '';
   if (totalPages <= 1) return;
+
+  if (totalPages > 7) {
+    dotsContainer.textContent = `${currentPage + 1} / ${totalPages}`;
+    dotsContainer.style.cssText = 'font-size:0.85rem;opacity:0.6;font-family:"Segoe UI",sans-serif;pointer-events:auto;white-space:nowrap';
+    return;
+  }
 
   for (let i = 0; i < totalPages; i++) {
     const dot = document.createElement('button');
@@ -270,7 +312,28 @@ iosHintBtn.addEventListener('pointerdown', () => {
 
 settingsBtn.addEventListener('pointerdown', (e) => {
   e.stopPropagation();
+  pendingHelp = false;
+  pendingBack = false;
   showMathGate();
+});
+
+helpBtn.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  pendingHelp = true;
+  pendingBack = false;
+  showMathGate();
+});
+
+backBtn.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  pendingBack = true;
+  pendingHelp = false;
+  showMathGate();
+});
+
+helpClose.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  helpModal.classList.remove('visible');
 });
 
 function showMathGate() {
@@ -292,7 +355,15 @@ mathSubmit.addEventListener('pointerdown', (e) => {
   const val = parseInt(mathAnswer.value, 10);
   if (val === parseInt(mathAnswer.dataset.sum, 10)) {
     hideMathGate();
-    showSettings();
+    if (pendingHelp) {
+      helpModal.classList.add('visible');
+      pendingHelp = false;
+    } else if (pendingBack) {
+      pendingBack = false;
+      window.location.href = '../../index.html';
+    } else {
+      showSettings();
+    }
   } else {
     hideMathGate();
   }
@@ -308,7 +379,15 @@ mathAnswer.addEventListener('keydown', (e) => {
     const val = parseInt(mathAnswer.value, 10);
     if (val === parseInt(mathAnswer.dataset.sum, 10)) {
       hideMathGate();
-      showSettings();
+      if (pendingHelp) {
+        helpModal.classList.add('visible');
+        pendingHelp = false;
+      } else if (pendingBack) {
+        pendingBack = false;
+        window.location.href = '../../index.html';
+      } else {
+        showSettings();
+      }
     } else {
       hideMathGate();
     }
@@ -320,6 +399,14 @@ function showSettings() {
   const modeVal = settings.mode || 'random';
   document.querySelector(`input[name="mode"][value="${modeVal}"]`).checked = true;
   parentInput.value = (settings.parentSyllables || []).join(' ');
+
+  const cardsAutoEl = document.getElementById('cards-auto');
+  const cardsInputEl = document.getElementById('cards-input');
+  const isAuto = settings.cardsAuto !== undefined ? settings.cardsAuto : true;
+  cardsAutoEl.checked = isAuto;
+  cardsInputEl.value = settings.cardsPerPage || '';
+  cardsInputEl.disabled = isAuto;
+
   settingsPanel.classList.add('visible');
 }
 
@@ -333,6 +420,11 @@ settingsApply.addEventListener('pointerdown', (e) => {
   if (!selected) return;
 
   mode = selected.value;
+  const rawInput = parentInput.value.trim();
+  if (rawInput.length > 0 && mode !== 'parent') {
+    mode = 'parent';
+    document.querySelector('input[name="mode"][value="parent"]').checked = true;
+  }
   if (mode === 'parent') {
     parentSyllables = parseParentInput(parentInput.value);
     if (parentSyllables.length === 0) {
@@ -343,6 +435,11 @@ settingsApply.addEventListener('pointerdown', (e) => {
     parentSyllables = [];
   }
 
+  const cardsAutoEl = document.getElementById('cards-auto');
+  const cardsInputEl = document.getElementById('cards-input');
+  cardsAuto = cardsAutoEl.checked;
+  cardsPerPage = cardsAuto ? 0 : parseInt(cardsInputEl.value, 10) || 0;
+
   saveSettings();
   hideSettings();
   currentCards.forEach(c => { c._completed = false; });
@@ -352,6 +449,13 @@ settingsApply.addEventListener('pointerdown', (e) => {
 settingsCancel.addEventListener('pointerdown', (e) => {
   e.stopPropagation();
   hideSettings();
+});
+
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'cards-auto') {
+    const input = document.getElementById('cards-input');
+    input.disabled = e.target.checked;
+  }
 });
 
 window.addEventListener('resize', () => {

@@ -148,6 +148,107 @@ html, body {
   pointer-events: auto;
 }
 
+/* Help modal — shared across all games */
+.help-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.help-modal.visible {
+  display: flex;
+}
+
+.help-modal__box {
+  background: #2a2a4a;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 24px;
+  padding: 24px 20px;
+  text-align: center;
+  min-width: 280px;
+  max-width: 400px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.help-modal__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.help-modal__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.help-modal__step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.08);
+  opacity: 0;
+  transform: translateX(-20px);
+  animation: helpStepIn 0.4s ease-out forwards;
+}
+
+.help-modal__step-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-modal__step-text {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.help-modal__btn {
+  padding: 12px 32px;
+  border-radius: 20px;
+  border: 2px solid rgba(255,255,255,0.25);
+  background: rgba(60,130,220,0.6);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  pointer-events: auto;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.help-modal__btn:active {
+  transform: scale(0.95);
+  background: rgba(60,130,220,0.8);
+}
+
+@keyframes helpStepIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .hub__grid {

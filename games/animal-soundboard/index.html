@@ -9,10 +9,19 @@
 </head>
 <body>
   <div class="game-header">
-    <a href="../../index.html" class="game-header__btn" aria-label="Back to games">
+    <button class="game-header__btn" id="back-btn" aria-label="Back to games">
       <svg><use href="../../assets/svg/icons.svg#icon-back"/></svg>
-    </a>
+    </button>
     <div class="game-header__btns">
+      <button class="game-header__btn" id="refresh-btn" aria-label="Ganti hewan">
+        <span style="font-size:1.3rem">🔄</span>
+      </button>
+      <button class="game-header__btn" id="fullscreen-btn" aria-label="Fullscreen">
+        <span style="font-size:1.3rem">⛶</span>
+      </button>
+      <button class="game-header__btn" id="help-btn" aria-label="Bantuan">
+        <svg><use href="../../assets/svg/icons.svg#icon-help"/></svg>
+      </button>
       <button class="lang-toggle" id="lang-en" aria-label="English">
         <span class="lang-toggle__flag">🇬🇧</span>
         <span class="lang-toggle__label">English</span>
@@ -35,6 +44,58 @@
         <button class="math-modal__btn math-modal__btn--ok" id="math-submit">OK</button>
         <button class="math-modal__btn math-modal__btn--cancel" id="math-cancel">X</button>
       </div>
+    </div>
+  </div>
+
+  <div class="help-modal" id="help-modal">
+    <div class="help-modal__box">
+      <div class="help-modal__title">❓ Cara Bermain</div>
+      <div class="help-modal__steps">
+        <div class="help-modal__step" style="animation-delay:0s">
+          <span class="help-modal__step-icon">🐾</span>
+          <span class="help-modal__step-text">Tap kartu hewan untuk mendengar suara aslinya</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.12s">
+          <span class="help-modal__step-icon">🗣️</span>
+          <span class="help-modal__step-text">Nama hewan akan disebutkan dalam bahasa Inggris atau Indonesia</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.24s">
+          <span class="help-modal__step-icon">🔄</span>
+          <span class="help-modal__step-text">Tekan 🔄 untuk ganti kumpulan hewan (perlu jawab soal)</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.36s">
+          <span class="help-modal__step-icon">⛶</span>
+          <span class="help-modal__step-text">Tekan ⛶ untuk masuk mode layar penuh</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.48s">
+          <span class="help-modal__step-icon">🌐</span>
+          <span class="help-modal__step-text">Tekan 🇬🇧 atau 🇮🇩 untuk ganti bahasa (perlu jawab soal)</span>
+        </div>
+      </div>
+      <div class="help-modal__title" style="margin-top:12px;font-size:0.9rem">⚙️ Cara Ganti Bahasa</div>
+      <div class="help-modal__steps">
+        <div class="help-modal__step" style="animation-delay:0.6s">
+          <span class="help-modal__step-icon">🌐</span>
+          <span class="help-modal__step-text">Tekan 🇬🇧 English atau 🇮🇩 B. Indo</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.72s">
+          <span class="help-modal__step-icon">🔒</span>
+          <span class="help-modal__step-text">Jawab soal matematika untuk orang tua</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.72s">
+          <span class="help-modal__step-icon">✅</span>
+          <span class="help-modal__step-text">Bahasa berubah, nama hewan diperbarui</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.84s">
+          <span class="help-modal__step-icon">🗣️</span>
+          <span class="help-modal__step-text">Dengarkan nama hewan dalam bahasa baru</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.96s">
+          <span class="help-modal__step-icon">🔄</span>
+          <span class="help-modal__step-text">Tekan tombol bahasa kapan saja untuk ganti</span>
+        </div>
+      </div>
+      <button class="help-modal__btn" id="help-close">Mengerti!</button>
     </div>
   </div>
 

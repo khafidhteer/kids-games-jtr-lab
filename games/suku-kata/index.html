@@ -9,10 +9,13 @@
 </head>
 <body>
   <div class="game-header">
-    <a href="../../index.html" class="game-header__btn" aria-label="Back to games">
+    <button class="game-header__btn" id="back-btn" aria-label="Back to games">
       <svg><use href="../../assets/svg/icons.svg#icon-back"/></svg>
-    </a>
+    </button>
     <div class="game-header__btns">
+      <button class="game-header__btn" id="help-btn" aria-label="Bantuan">
+        <svg><use href="../../assets/svg/icons.svg#icon-help"/></svg>
+      </button>
       <button class="game-header__btn" id="sound-toggle" aria-label="Toggle sound">
         <span class="suku-header__icon" style="font-size:1.3rem">🔊</span>
       </button>
@@ -20,7 +23,7 @@
         <span style="font-size:1.3rem">⛶</span>
       </button>
       <button class="game-header__btn" id="settings-btn" aria-label="Settings">
-        <span style="font-size:1.3rem">🔒</span>
+        <svg><use href="../../assets/svg/icons.svg#icon-settings"/></svg>
       </button>
     </div>
   </div>
@@ -61,6 +64,14 @@
         <label><input type="radio" name="mode" value="parent" /> 👨‍👩‍👧‍👦 By Parent</label>
       </div>
 
+      <div class="settings-panel__label">Cards per page:</div>
+      <div class="settings-panel__cards">
+        <label class="settings-panel__card-option">
+          <input type="checkbox" id="cards-auto" checked /> Auto
+        </label>
+        <input class="settings-panel__card-input" id="cards-input" type="number" min="1" max="20" disabled />
+      </div>
+
       <div class="settings-panel__label">Syllables:</div>
       <textarea class="settings-panel__textarea" id="parent-input" placeholder="ba be bi bo bu pa pe pi po pu"></textarea>
       <div class="settings-panel__hint">Separate with spaces, commas, or new lines</div>
@@ -72,10 +83,59 @@
     </div>
   </div>
 
+  <div class="help-modal" id="help-modal">
+    <div class="help-modal__box">
+      <div class="help-modal__title">❓ Cara Bermain</div>
+      <div class="help-modal__steps">
+        <div class="help-modal__step" style="animation-delay:0s">
+          <span class="help-modal__step-icon">👆</span>
+          <span class="help-modal__step-text">Tap kartu untuk mendengar suku kata diucapkan</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.12s">
+          <span class="help-modal__step-icon">📄</span>
+          <span class="help-modal__step-text">Geser layar atau tekan ‹ › untuk ganti halaman</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.24s">
+          <span class="help-modal__step-icon">🔀</span>
+          <span class="help-modal__step-text">Tekan "Acak" untuk mengacak urutan kartu</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.36s">
+          <span class="help-modal__step-icon">🎉</span>
+          <span class="help-modal__step-text">Selesaikan semua kartu untuk melihat selebrasi!</span>
+        </div>
+      </div>
+
+      <div class="help-modal__title" style="margin-top:14px;font-size:0.9rem">⚙️ Panduan Pengaturan</div>
+      <div class="help-modal__steps">
+        <div class="help-modal__step" style="animation-delay:0.48s">
+          <span class="help-modal__step-icon">⚙️</span>
+          <span class="help-modal__step-text">Tekan ikon ⚙️ lalu jawab soal untuk masuk</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.6s">
+          <span class="help-modal__step-icon">🔀</span>
+          <span class="help-modal__step-text">Pilih mode: Acak, Urut, atau By Parent</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.72s">
+          <span class="help-modal__step-icon">📏</span>
+          <span class="help-modal__step-text">Atur jumlah kartu per halaman (atau Auto)</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.84s">
+          <span class="help-modal__step-icon">✏️</span>
+          <span class="help-modal__step-text">Masukkan suku kata kustom (pisah dengan spasi)</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.96s">
+          <span class="help-modal__step-icon">✅</span>
+          <span class="help-modal__step-text">Tekan "Apply" untuk menyimpan pengaturan</span>
+        </div>
+      </div>
+      <button class="help-modal__btn" id="help-close">Mengerti!</button>
+    </div>
+  </div>
+
   <div class="celebration-overlay" id="celebration">
     <div class="celebration-overlay__text">
       <span class="celebration-overlay__emoji">🎉🌟🎉</span>
-      Hebat!
+
     </div>
   </div>
 

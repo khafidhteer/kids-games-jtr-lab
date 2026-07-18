@@ -22,6 +22,87 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const hint = document.getElementById('hint');
 const soundToggle = document.getElementById('sound-toggle');
+const fullscreenBtn = document.getElementById('fullscreen-btn');
+const backBtn = document.getElementById('back-btn');
+const helpBtn = document.getElementById('help-btn');
+const helpModal = document.getElementById('help-modal');
+const helpClose = document.getElementById('help-close');
+const mathModal = document.getElementById('math-modal');
+const mathQuestion = document.getElementById('math-question');
+const mathAnswer = document.getElementById('math-answer');
+const mathSubmit = document.getElementById('math-submit');
+const mathCancel = document.getElementById('math-cancel');
+
+let mathA = 0, mathB = 0, mathSum = 0;
+let pendingAction = null;
+
+function showMathGate(action) {
+  mathA = Math.floor(Math.random() * 8) + 1;
+  mathB = Math.floor(Math.random() * 8) + 1;
+  mathSum = mathA + mathB;
+  pendingAction = action;
+  mathQuestion.textContent = `${mathA} + ${mathB} = ?`;
+  mathAnswer.value = '';
+  mathModal.classList.add('visible');
+  setTimeout(() => mathAnswer.focus(), 100);
+}
+
+function hideMathGate() {
+  mathModal.classList.remove('visible');
+  pendingAction = null;
+}
+
+mathSubmit.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  const val = parseInt(mathAnswer.value, 10);
+  if (val === mathSum && pendingAction) {
+    pendingAction();
+  }
+  hideMathGate();
+});
+
+mathCancel.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  hideMathGate();
+});
+
+mathAnswer.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const val = parseInt(mathAnswer.value, 10);
+    if (val === mathSum && pendingAction) {
+      pendingAction();
+    }
+    hideMathGate();
+  }
+});
+
+helpBtn.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  showMathGate(() => {
+    helpModal.classList.add('visible');
+  });
+});
+
+helpClose.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  helpModal.classList.remove('visible');
+});
+
+backBtn.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  showMathGate(() => {
+    window.location.href = '../../index.html';
+  });
+});
+
+fullscreenBtn.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+});
 
 let soundOn = true;
 let firstTap = false;
