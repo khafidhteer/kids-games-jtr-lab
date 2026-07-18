@@ -32,8 +32,6 @@ const backBtn = document.getElementById('back-btn');
 const iosHint = document.getElementById('ios-hint');
 const iosHintBtn = document.getElementById('ios-hint-btn');
 
-const celebration = document.getElementById('celebration');
-
 let audioReady = false;
 let pendingHelp = false;
 let pendingBack = false;
@@ -193,17 +191,6 @@ function onCardTap(el, card) {
   const idx = currentCards.indexOf(card);
   if (idx >= 0) {
     currentCards[idx]._completed = true;
-    checkComplete();
-  }
-}
-
-function checkComplete() {
-  const allDone = currentCards.every(c => c._completed);
-  if (allDone && currentCards.length > 0) {
-    celebration.classList.add('visible');
-    setTimeout(() => {
-      celebration.classList.remove('visible');
-    }, 2000);
   }
 }
 

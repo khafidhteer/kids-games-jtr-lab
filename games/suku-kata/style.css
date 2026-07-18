@@ -553,34 +553,6 @@ html, body {
   backdrop-filter: blur(4px);
 }
 
-.celebration-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 150;
-  pointer-events: none;
-  align-items: center;
-  justify-content: center;
-}
-
-.celebration-overlay.visible {
-  display: flex;
-  animation: celebFade 1.5s ease-out forwards;
-}
-
-.celebration-overlay__text {
-  font-size: clamp(2rem, 8vw, 4rem);
-  text-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  animation: celebBounce 0.6s ease;
-}
-
-.celebration-overlay__emoji {
-  font-size: clamp(3rem, 12vw, 6rem);
-  display: block;
-  text-align: center;
-  margin-bottom: 8px;
-}
-
 @keyframes cardEnter {
   0%   { opacity: 0; transform: scale(0.7) translateY(20px); }
   100% { opacity: 1; transform: scale(1) translateY(0); }
@@ -605,18 +577,6 @@ html, body {
   50%  { transform: rotate(8deg); }
   75%  { transform: rotate(-4deg); }
   100% { transform: rotate(0deg); }
-}
-
-@keyframes celebFade {
-  0%   { opacity: 1; transform: scale(0.8); }
-  50%  { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.2); }
-}
-
-@keyframes celebBounce {
-  0%   { transform: scale(0.3); opacity: 0; }
-  50%  { transform: scale(1.15); }
-  100% { transform: scale(1); opacity: 1; }
 }
 
 .ios-fullscreen-hint {
