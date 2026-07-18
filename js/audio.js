@@ -1,7 +1,7 @@
 let audioCtx = null;
 let audioUnlocked = false;
 
-function getCtx() {
+export function getCtx() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }

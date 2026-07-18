@@ -1,3 +1,5 @@
+import { getCtx } from './audio.js';
+
 export const LANG_MAP = {
   en: 'en-US',
   id: 'id-ID'
@@ -36,9 +38,7 @@ function ensureVoice(lang) {
 
 export function primeSpeech() {
   if (!window.speechSynthesis) return;
-  speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(' ');
-  u.volume = 0;
   speechSynthesis.speak(u);
 }
 
@@ -47,6 +47,11 @@ export function speak(text, lang = 'en') {
   ensureVoice(lang);
 
   try {
+    const ctx = getCtx();
+    if (ctx && ctx.state === 'running') {
+      ctx.suspend();
+    }
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = LANG_MAP[lang] || lang;
     if (preferredVoice) utterance.voice = preferredVoice;
@@ -54,10 +59,21 @@ export function speak(text, lang = 'en') {
     utterance.pitch = 1.1;
     utterance.volume = 1;
 
-    utterance.onerror = () => {};
+    utterance.onend = () => {
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume();
+      }
+    };
+    utterance.onerror = () => {
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume();
+      }
+    };
 
     speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
+    setTimeout(() => {
+      speechSynthesis.speak(utterance);
+    }, 50);
   } catch (e) {
     /* speech not supported */
   }
