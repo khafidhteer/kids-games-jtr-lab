@@ -1,9 +1,0 @@
-{
-  "customCommands": [
-    {
-      "name": "deploy",
-      "command": "TS=$(date -u +%Y%m%d%H%M%S) && find . -path './.agents' -prune -o \\( -name '*.html' -o -name 'js/version.js' \\) -print | xargs sed -i \"s/[0-9]\\{14\\}/$TS/g\" && git add -A && git commit -m \"deploy v$TS\" && git push",
-      "description": "Bump version timestamp, commit, and push to deploy"
-    }
-  ]
-}
