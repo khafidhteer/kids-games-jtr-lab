@@ -1,2 +1,2 @@
 // ⚡ Bump on each deploy — use UTC timestamp YYYYMMDDHHMMSS
-export const VERSION = '20260718050959';
+export const VERSION = '20260719120000';

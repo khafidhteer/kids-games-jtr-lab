@@ -32,10 +32,11 @@ Dual-mode audio system:
 - **Audio unlock** via `unlockAudio()` — must be called on first user gesture for mobile. NOT awaited in game code (fire-and-forget) so it doesn't block the user gesture.
 
 ### `js/speech.js`
-Web Speech API wrapper:
+Web Speech API wrapper (thin, stateless):
 - `speak(text, lang)` — speaks text in en-US or id-ID
 - Rate 0.85, pitch 1.1 (toddler-friendly)
-- 100ms delay + try/catch to avoid AudioContext conflicts
+- No `cancel()`, no voice selection, no priming — mirrors working iOS test pattern
+- `primeSpeech()` is a no-op stub for import compatibility
 
 ### `js/animals.js`
 Shared animal data (reusable across games):

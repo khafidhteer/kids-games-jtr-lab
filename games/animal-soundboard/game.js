@@ -1,6 +1,6 @@
 import { getRandomAnimals, getAnimalSoundUrl } from '../../js/animals.js';
 import { unlockAudio, playAudio } from '../../js/audio.js';
-import { speak, primeSpeech } from '../../js/speech.js';
+import { speak } from '../../js/speech.js';
 
 let currentLang = 'id';
 let audioReady = false;
@@ -178,7 +178,6 @@ function renderBoard(animals) {
       e.preventDefault();
 
       if (!audioReady) {
-        primeSpeech(currentLang);
         unlockAudio();
         audioReady = true;
       }

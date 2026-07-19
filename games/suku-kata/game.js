@@ -1,6 +1,6 @@
 import { ALL_SYLLABLES, shuffle, parseParentInput, resolveSyllables, nextColor, resetColorIndex } from './data.js';
 import { AudioSynth, unlockAudio } from '../../js/audio.js';
-import { speak, primeSpeech } from '../../js/speech.js';
+import { speak } from '../../js/speech.js';
 
 const STORAGE_KEY = 'suku_kata_settings';
 
@@ -167,7 +167,6 @@ function renderPage() {
 
 function onCardTap(el, card) {
   if (!audioReady) {
-    primeSpeech('id');
     unlockAudio();
     audioReady = true;
   }
