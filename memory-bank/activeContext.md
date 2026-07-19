@@ -1,15 +1,14 @@
 # Active Context — kids-games
 
 ## Current Focus
-iOS speech synthesis fix — `speechSynthesis` is available on iOS but was silently failing due to code antipatterns.
+iOS speech synthesis — fixed and confirmed working. Root cause was twofold: `pointerdown` + `e.preventDefault()` prevented the `click` event iOS SpeechSynthesis requires for user activation, and `speak()` was called after audio APIs (AudioSynth/playAudio) which grabbed the audio session first.
 
 ## What Was Built Recently
-- **iOS speech fix**: `js/speech.js` simplified — removed `cancel()` before `speak()` (iOS WebKit bug drops the speak), removed `findFemaleVoice()` / `ensureVoice()` / `preferredVoice` (voice selection), removed `primeSpeech()` body (empty utterance primes iOS into a bad state). New `speak()` mirrors the working test pattern: create utterance, set lang/rate/pitch/volume, call `speak()` directly. `primeSpeech()` kept as no-op stub for import compatibility.
-- **6 game files cleaned**: Removed `primeSpeech` import and call from animal-soundboard, buah-sayur, kendaraan, bangunan, benda, and suku-kata.
-
-## Architecture Updates
-- `speech.js` is now a thin wrapper — no state, no listeners, no cancel.
-- All games call `speak()` directly on tap — no priming step needed.
+- **speech.js cleanup**: Removed `cancel()` (iOS WebKit bug drops speak), voice selection (voices async on iOS), `primeSpeech()` body (empty utterance primes iOS into bad state). Module is now a thin wrapper.
+- **Card handler rewrite**: Changed from `pointerdown` + `e.preventDefault()` to `click` (no preventDefault). `click` is the universally trusted gesture event on iOS.
+- **Call order swap**: `speak()` now runs BEFORE `playAudio()`/`AudioSynth` to grab the iOS audio session first.
+- **6 game files updated**: animal-soundboard, buah-sayur, kendaraan, bangunan, benda, suku-kata.
+- **Cache bust**: Bumped version to `20260719140000` in all HTML files + version.js.
 
 ## Known Issues
 - None

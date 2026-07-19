@@ -55,4 +55,5 @@
 | `f3520cf` | docs: add README and MIT license |
 | `8748e28` | fix: HTML5 audio, Safari double-tap zoom, language toggle speech |
 | `70b395b` | fix: fresh Audio per play, math verification for lang toggle, safeguard skip interactive elements |
-| `(latest)` | fix: iOS speech synthesis — remove cancel/voice-selection/primeSpeech antipatterns |
+| `b180d62` | fix: iOS speech — use click event, speak before audio to match working test pattern |
+| `95414c6` | fix: iOS speech synthesis — remove cancel/voice-selection/primeSpeech antipatterns |
