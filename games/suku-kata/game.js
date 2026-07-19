@@ -153,8 +153,7 @@ function renderPage() {
       <div class="suku-card__text">${card.syllable}</div>
     `;
 
-    el.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
+    el.addEventListener('click', () => {
       onCardTap(el, card);
     });
 
@@ -175,12 +174,12 @@ function onCardTap(el, card) {
   void el.offsetWidth;
   el.classList.add('tapped');
 
-  AudioSynth.pop();
-
   if (soundOn) {
     el.classList.add('speaking');
     speak(card.syllable, 'id');
   }
+
+  AudioSynth.pop();
 
   setTimeout(() => {
     el.classList.remove('tapped', 'speaking');

@@ -174,9 +174,7 @@ function renderBoard(animals) {
     const nameEl = card.querySelector('.animal-card__name');
     nameEls.push(nameEl);
 
-    card.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-
+    card.addEventListener('click', (e) => {
       if (!audioReady) {
         unlockAudio();
         audioReady = true;
@@ -186,10 +184,9 @@ function renderBoard(animals) {
       void card.offsetWidth;
       card.classList.add('bounce');
 
-      playAudio(getAnimalSoundUrl(animal.sound));
-
       card.classList.add('speaking');
       speak(animal[currentLang], currentLang);
+      playAudio(getAnimalSoundUrl(animal.sound));
 
       setTimeout(() => {
         card.classList.remove('bounce', 'speaking');
