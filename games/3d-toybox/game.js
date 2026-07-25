@@ -23,11 +23,21 @@ const COLORS = [
   0x7FB3D8, 0xF7DC6F, 0x82E0AA, 0xF1948A, 0xBB8FCE,
 ];
 
+const factoryMap = {
+  sphere: 'createSphere', box: 'createBox', cylinder: 'createCylinder',
+  cone: 'createCone', torus: 'createTorus', ring: 'createRing',
+  tetrahedron: 'createTetrahedron', octahedron: 'createOctahedron',
+  dodecahedron: 'createDodecahedron', torusknot: 'createTorusKnot',
+  icosahedron: 'createIcosahedron', planet: 'createPlanet', rocket: 'createRocket',
+  atom: 'createAtom', lightbulb: 'createLightbulb', testtube: 'createTesttube',
+  prism: 'createPrism', globe: 'createGlobe', telescope: 'createTelescope',
+  satellite: 'createSatellite',
+};
+
 function createObj(id, color) {
-  const T = THREE;
-  const factoryName = 'create' + id.charAt(0).toUpperCase() + id.slice(1);
-  if (typeof Models[factoryName] !== 'function') return null;
-  return Models[factoryName](T, color);
+  const fn = factoryMap[id];
+  if (!fn || typeof Models[fn] !== 'function') return null;
+  return Models[fn](THREE, color);
 }
 
 function setObjUserData(group, def) {
@@ -60,14 +70,6 @@ const objectDefs = [
   { id: 'telescope', nameEn: 'Telescope', nameId: 'Teleskop', emoji: '🔭', type: 'science' },
   { id: 'satellite', nameEn: 'Satellite', nameId: 'Satelit', emoji: '🛰️', type: 'science' },
 ];
-
-function createObj(id, color) {
-  const def = objectDefs.find(d => d.id === id);
-  if (!def) return null;
-  const T = THREE;
-  let mesh = def.type === 'geo' ? buildGeometric(T, id, color) : buildScience(T, id, color);
-  return mesh || null;
-}
 
 function createGradientTexture() {
   const c = document.createElement('canvas');
