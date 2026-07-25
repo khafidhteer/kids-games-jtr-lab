@@ -513,12 +513,12 @@ function setupInteraction() {
     if (!e.buttons) return;
     const dx = e.clientX - pointerStartX;
     const dy = e.clientY - pointerStartY;
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+    if (dx !== 0 || dy !== 0) {
       isDragging = true;
     }
     if (currentGroup && isDragging) {
-      currentGroup.rotation.y += dx * 0.018;
-      currentGroup.rotation.x += dy * 0.018;
+      currentGroup.rotation.y += dx * 0.045;
+      currentGroup.rotation.x += dy * 0.045;
       pointerStartX = e.clientX;
       pointerStartY = e.clientY;
     }
