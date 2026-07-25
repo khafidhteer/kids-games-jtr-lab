@@ -500,4 +500,18 @@ function animate() {
   renderer.render(scene, camera);
 }
 
+window.addEventListener('unhandledrejection', e => {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:40px;left:0;right:0;background:darkred;color:white;padding:12px;z-index:9999;font-size:14px;word-break:break-all';
+  el.textContent = 'REJECTION: ' + (e.reason?.message || e.reason || 'Unknown');
+  document.body.prepend(el);
+});
+
+window.addEventListener('error', e => {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:12px;z-index:9999;font-size:14px;word-break:break-all';
+  el.textContent = e.message || 'Unknown error';
+  document.body.prepend(el);
+});
+
 init();
