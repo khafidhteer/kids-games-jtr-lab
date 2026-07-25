@@ -341,4 +341,3 @@ export function createSatellite(T, color) {
   return g
 }
 
-export { createSphere, createBox, createCylinder, createCone, createTorus, createRing, createTetrahedron, createOctahedron, createDodecahedron, createTorusKnot, createIcosahedron, createPlanet, createRocket, createAtom, createLightbulb, createTesttube, createPrism, createGlobe, createTelescope, createSatellite };
