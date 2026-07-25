@@ -1,6 +1,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js';
 import { unlockAudio, AudioSynth } from '../../js/audio.js';
 import { speak } from '../../js/speech.js';
+import * as Models from './models.js';
 
 let currentLang = 'id';
 let audioReady = false;
@@ -22,222 +23,19 @@ const COLORS = [
   0x7FB3D8, 0xF7DC6F, 0x82E0AA, 0xF1948A, 0xBB8FCE,
 ];
 
-function mat(T, c, opts = {}) {
-  return new T.MeshStandardMaterial({ color: c, roughness: 0.35, metalness: 0.15, ...opts });
+function createObj(id, color) {
+  const T = THREE;
+  const factoryName = 'create' + id.charAt(0).toUpperCase() + id.slice(1);
+  if (typeof Models[factoryName] !== 'function') return null;
+  return Models[factoryName](T, color);
 }
 
-function createGlobeTexture() {
-  const c = document.createElement('canvas');
-  c.width = 512;
-  c.height = 256;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#1a6ba0';
-  ctx.fillRect(0, 0, 512, 256);
-  const blobs = [
-    { x: 180, y: 100, rx: 80, ry: 60, color: '#4a9e4a' },
-    { x: 200, y: 150, rx: 40, ry: 30, color: '#3d8b3d' },
-    { x: 280, y: 80, rx: 100, ry: 70, color: '#5aae5a' },
-    { x: 290, y: 140, rx: 50, ry: 40, color: '#4a9e4a' },
-    { x: 340, y: 110, rx: 60, ry: 50, color: '#6abe6a' },
-    { x: 400, y: 130, rx: 30, ry: 40, color: '#4a9e4a' },
-    { x: 100, y: 80, rx: 60, ry: 80, color: '#4a9e4a' },
-    { x: 90, y: 140, rx: 40, ry: 50, color: '#3d8b3d' },
-    { x: 350, y: 170, rx: 30, ry: 20, color: '#5aae5a' },
-    { x: 260, y: 40, rx: 30, ry: 15, color: '#8acc8a' },
-  ];
-  blobs.forEach(b => {
-    ctx.fillStyle = b.color;
-    ctx.beginPath();
-    ctx.ellipse(b.x, b.y, b.rx, b.ry, 0, 0, Math.PI * 2);
-    ctx.fill();
-  });
-  return new THREE.CanvasTexture(c);
-}
-
-function buildGeometric(T, id, color) {
-  const geoMap = {
-    sphere: [T.SphereGeometry, 0.4, 24, 24],
-    box: [T.BoxGeometry, 0.6, 0.6, 0.6],
-    cylinder: [T.CylinderGeometry, 0.3, 0.3, 0.5, 24],
-    cone: [T.ConeGeometry, 0.35, 0.55, 24],
-    torus: [T.TorusGeometry, 0.35, 0.12, 16, 24],
-    ring: [T.RingGeometry, 0.2, 0.4, 24],
-    tetrahedron: [T.TetrahedronGeometry, 0.45],
-    octahedron: [T.OctahedronGeometry, 0.4],
-    dodecahedron: [T.DodecahedronGeometry, 0.38],
-    torusknot: [T.TorusKnotGeometry, 0.3, 0.1, 48, 8],
-    icosahedron: [T.IcosahedronGeometry, 0.4],
+function setObjUserData(group, def) {
+  const atomData = group.userData.atomElectrons;
+  group.userData = {
+    id: def.id, nameEn: def.nameEn, nameId: def.nameId, emoji: def.emoji,
   };
-  const params = geoMap[id];
-  if (!params) return null;
-  const [ctor, ...args] = params;
-  return new THREE.Mesh(new ctor(...args), mat(T, color));
-}
-
-function buildRocket(T) {
-  const g = new T.Group();
-  const body = new T.Mesh(new T.CylinderGeometry(0.12, 0.14, 0.5, 16), mat(T, 0xEEEEEE, { roughness: 0.2 }));
-  body.position.y = 0.05;
-  const interstage = new T.Mesh(new T.CylinderGeometry(0.12, 0.12, 0.04, 16), mat(T, 0x222222));
-  interstage.position.y = 0.3;
-  const upper = new T.Mesh(new T.CylinderGeometry(0.10, 0.12, 0.2, 16), mat(T, 0xDDDDDD, { roughness: 0.2 }));
-  upper.position.y = 0.44;
-  const nose = new T.Mesh(new T.ConeGeometry(0.10, 0.18, 16), mat(T, 0xEEEEEE, { roughness: 0.2 }));
-  nose.position.y = 0.65;
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 3; col++) {
-      const nozzle = new T.Mesh(new T.CylinderGeometry(0.02, 0.025, 0.03, 8), mat(T, 0x444444, { metalness: 0.5 }));
-      nozzle.position.set((col - 1) * 0.07, -0.2, (row - 1) * 0.07);
-      g.add(nozzle);
-    }
-  }
-  for (let i = 0; i < 4; i++) {
-    const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
-    const leg = new T.Mesh(new T.BoxGeometry(0.02, 0.12, 0.04), mat(T, 0x555555, { metalness: 0.3 }));
-    leg.position.set(Math.cos(angle) * 0.14, -0.1, Math.sin(angle) * 0.14);
-    leg.rotation.y = -angle;
-    g.add(leg);
-  }
-  for (let i = 0; i < 4; i++) {
-    const angle = (i / 4) * Math.PI * 2;
-    const fin = new T.Mesh(new T.BoxGeometry(0.04, 0.06, 0.02), mat(T, 0x333333, { metalness: 0.3 }));
-    fin.position.set(Math.cos(angle) * 0.13, 0.2, Math.sin(angle) * 0.13);
-    fin.rotation.y = -angle;
-    g.add(fin);
-  }
-  return g;
-}
-
-function buildTelescope(T) {
-  const g = new T.Group();
-  const tube = new T.Mesh(new T.CylinderGeometry(0.16, 0.16, 0.5, 16), mat(T, 0x1a3a6a, { roughness: 0.3 }));
-  tube.rotation.x = Math.PI / 2;
-  const hood = new T.Mesh(new T.CylinderGeometry(0.19, 0.16, 0.06, 16), mat(T, 0xEEEEEE, { roughness: 0.2 }));
-  hood.position.z = 0.27;
-  hood.rotation.x = Math.PI / 2;
-  const finder = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.08, 8), mat(T, 0x222222));
-  finder.position.set(0, 0.18, 0.05);
-  finder.rotation.x = Math.PI / 2;
-  const finderEnd = new T.Mesh(new T.SphereGeometry(0.03, 6, 6), mat(T, 0x444444));
-  finderEnd.position.set(0, 0.18, 0.1);
-  const starSense = new T.Mesh(new T.BoxGeometry(0.06, 0.04, 0.06), mat(T, 0x333333, { metalness: 0.4 }));
-  starSense.position.set(0.12, -0.06, -0.1);
-  const focuser = new T.Mesh(new T.CylinderGeometry(0.04, 0.05, 0.06, 8), mat(T, 0x888888, { metalness: 0.4 }));
-  focuser.position.set(0, -0.14, -0.22);
-  focuser.rotation.x = Math.PI / 4;
-  const eyepiece = new T.Mesh(new T.CylinderGeometry(0.025, 0.03, 0.04, 8), mat(T, 0x555555, { metalness: 0.3 }));
-  eyepiece.position.set(0, -0.14, -0.27);
-  eyepiece.rotation.x = Math.PI / 4;
-  const mountBase = new T.Mesh(new T.CylinderGeometry(0.06, 0.08, 0.1, 10), mat(T, 0x222222, { metalness: 0.3 }));
-  mountBase.position.y = -0.3;
-  for (let i = 0; i < 3; i++) {
-    const angle = (i / 3) * Math.PI * 2;
-    const leg = new T.Mesh(new T.CylinderGeometry(0.015, 0.02, 0.35, 6), mat(T, 0x888888, { metalness: 0.4 }));
-    leg.position.set(Math.cos(angle) * 0.12, -0.5, Math.sin(angle) * 0.12);
-    leg.rotation.z = Math.cos(angle) * 0.25;
-    leg.rotation.x = Math.sin(angle) * 0.25;
-    g.add(leg);
-  }
-  const tray = new T.Mesh(new T.TorusGeometry(0.15, 0.015, 6, 12), mat(T, 0x444444, { metalness: 0.3 }));
-  tray.position.y = -0.4;
-  tray.rotation.x = Math.PI / 2;
-  g.add(tube, hood, finder, finderEnd, starSense, focuser, eyepiece, mountBase, tray);
-  tube.position.set(0, 0, 0);
-  return g;
-}
-
-function buildScience(T, id, color) {
-  switch (id) {
-    case 'planet': {
-      const g = new T.Group();
-      const sphere = new T.Mesh(new T.SphereGeometry(0.35, 24, 24), mat(T, color));
-      const ring = new T.Mesh(new T.TorusGeometry(0.52, 0.06, 12, 24), mat(T, 0xE67E22, { roughness: 0.6 }));
-      ring.rotation.x = 0.4;
-      ring.rotation.z = 0.3;
-      g.add(sphere, ring);
-      return g;
-    }
-    case 'rocket': return buildRocket(T);
-    case 'atom': {
-      const g = new T.Group();
-      const core = new T.Mesh(new T.SphereGeometry(0.15, 16, 16), mat(T, color, { emissive: color, emissiveIntensity: 0.3 }));
-      const orbit1 = new T.Mesh(new T.TorusGeometry(0.3, 0.025, 8, 16), mat(T, 0x3498DB));
-      orbit1.rotation.x = Math.PI / 2;
-      const orbit2 = new T.Mesh(new T.TorusGeometry(0.3, 0.025, 8, 16), mat(T, 0x2ECC71));
-      orbit2.rotation.z = Math.PI / 2;
-      const orbit3 = new T.Mesh(new T.TorusGeometry(0.3, 0.025, 8, 16), mat(T, 0xE74C3C));
-      orbit3.rotation.x = Math.PI / 4;
-      orbit3.rotation.z = Math.PI / 4;
-      const e1 = new T.Mesh(new T.SphereGeometry(0.06, 8, 8), mat(T, 0xF1C40F, { emissive: 0xF1C40F, emissiveIntensity: 0.5 }));
-      const e2 = new T.Mesh(new T.SphereGeometry(0.06, 8, 8), mat(T, 0xF1C40F, { emissive: 0xF1C40F, emissiveIntensity: 0.5 }));
-      g.add(core, orbit1, orbit2, orbit3, e1, e2);
-      g.userData.atomElectrons = { e1, e2, angle: 0 };
-      return g;
-    }
-    case 'lightbulb': {
-      const g = new T.Group();
-      const bulb = new T.Mesh(new T.SphereGeometry(0.3, 20, 20), mat(T, 0xF1C40F, { emissive: 0xF1C40F, emissiveIntensity: 0.2 }));
-      bulb.scale.set(1, 1.1, 1);
-      bulb.position.y = 0.2;
-      const base = new T.Mesh(new T.CylinderGeometry(0.15, 0.2, 0.15, 12), mat(T, 0x7F8C8D, { metalness: 0.3 }));
-      base.position.y = -0.15;
-      const tip = new T.Mesh(new T.SphereGeometry(0.05, 8, 8), mat(T, 0x7F8C8D, { metalness: 0.3 }));
-      tip.position.y = -0.25;
-      g.add(bulb, base, tip);
-      return g;
-    }
-    case 'testtube': {
-      const g = new T.Group();
-      const tube = new T.Mesh(new T.CylinderGeometry(0.12, 0.12, 0.5, 12), mat(T, 0xBDC3C7, { transparent: true, opacity: 0.4, roughness: 0.1 }));
-      tube.position.y = 0.1;
-      const liquid = new T.Mesh(new T.CylinderGeometry(0.1, 0.1, 0.25, 12), mat(T, 0x2ECC71, { transparent: true, opacity: 0.7 }));
-      liquid.position.y = -0.05;
-      const bottom = new T.Mesh(new T.SphereGeometry(0.12, 12, 12), mat(T, 0xBDC3C7, { transparent: true, opacity: 0.4, roughness: 0.1 }));
-      bottom.position.y = -0.15;
-      g.add(tube, liquid, bottom);
-      return g;
-    }
-    case 'prism': {
-      const shape = new T.Shape();
-      const s = 0.3;
-      shape.moveTo(0, -s);
-      shape.lineTo(s * 0.87, s * 0.5);
-      shape.lineTo(-s * 0.87, s * 0.5);
-      shape.closePath();
-      const geo = new T.ExtrudeGeometry(shape, { depth: 0.5, bevelEnabled: true, bevelSize: 0.02, bevelThickness: 0.02 });
-      const mesh = new T.Mesh(geo, mat(T, color, { roughness: 0.2 }));
-      mesh.rotation.x = -0.2;
-      return mesh;
-    }
-    case 'globe': {
-      const g = new T.Group();
-      const sphere = new T.Mesh(new T.SphereGeometry(0.3, 24, 24), mat(T, 0x3498DB, { roughness: 0.3 }));
-      sphere.material.map = createGlobeTexture();
-      sphere.material.needsUpdate = true;
-      const stand = new T.Mesh(new T.CylinderGeometry(0.04, 0.04, 0.3, 8), mat(T, 0x7F8C8D, { metalness: 0.3 }));
-      stand.position.y = -0.4;
-      const base = new T.Mesh(new T.ConeGeometry(0.15, 0.06, 12), mat(T, 0x7F8C8D, { metalness: 0.3 }));
-      base.position.y = -0.55;
-      g.add(sphere, stand, base);
-      return g;
-    }
-    case 'telescope': return buildTelescope(T);
-    case 'satellite': {
-      const g = new T.Group();
-      const body = new T.Mesh(new T.BoxGeometry(0.25, 0.2, 0.25), mat(T, 0xBDC3C7, { metalness: 0.3 }));
-      const panel1 = new T.Mesh(new T.BoxGeometry(0.5, 0.02, 0.15), mat(T, 0x3498DB));
-      panel1.position.x = 0.4;
-      const panel2 = new T.Mesh(new T.BoxGeometry(0.5, 0.02, 0.15), mat(T, 0x3498DB));
-      panel2.position.x = -0.4;
-      const antenna = new T.Mesh(new T.CylinderGeometry(0.01, 0.01, 0.2, 6), mat(T, 0xF1C40F));
-      antenna.position.y = 0.2;
-      const tip = new T.Mesh(new T.SphereGeometry(0.03, 8, 8), mat(T, 0xF1C40F, { emissive: 0xF1C40F, emissiveIntensity: 0.5 }));
-      tip.position.y = 0.3;
-      g.add(body, panel1, panel2, antenna, tip);
-      return g;
-    }
-    default: return null;
-  }
+  if (atomData) group.userData.atomElectrons = atomData;
 }
 
 const objectDefs = [
@@ -344,16 +142,14 @@ function showObject(index, animate = true) {
   if (index < 0 || index >= objectDefs.length) return;
   const def = objectDefs[index];
   const color = COLORS[index % COLORS.length];
-  const mesh = createObj(def.id, color);
-  if (!mesh) return;
+  const group = createObj(def.id, color);
+  if (!group) return;
 
   if (currentGroup) {
     scene.remove(currentGroup);
     disposeObject(currentGroup);
   }
 
-  const group = new THREE.Group();
-  group.add(mesh);
   group.position.set(0, 0.3, 0);
 
   if (def.type === 'science' && def.id !== 'telescope') {
@@ -363,20 +159,10 @@ function showObject(index, animate = true) {
     group.scale.setScalar(0.85);
   }
 
-  if (def.id === 'rocket') {
-    group.rotation.x = 0;
-    group.rotation.y = 0;
-  } else if (def.id === 'telescope') {
-    group.rotation.x = 0;
-    group.rotation.y = -0.3;
-  } else {
-    group.rotation.x = 0.1;
-    group.rotation.y = 0.3;
-  }
+  group.rotation.x = 0.1;
+  group.rotation.y = 0.3;
 
-  group.userData = {
-    id: def.id, nameEn: def.nameEn, nameId: def.nameId, emoji: def.emoji,
-  };
+  setObjUserData(group, def);
 
   currentGroup = group;
   currentObjectIndex = index;
@@ -498,11 +284,16 @@ function init() {
   animate();
 }
 
+let isPointerDown = false;
+
 function setupInteraction() {
   const canvas = renderer.domElement;
   canvas.style.touchAction = 'none';
+  canvas.style.touchCallout = 'none';
+  canvas.style.webkitTouchCallout = 'none';
 
   function onPointerDown(e) {
+    isPointerDown = true;
     pointerStartX = e.clientX;
     pointerStartY = e.clientY;
     isDragging = false;
@@ -510,7 +301,7 @@ function setupInteraction() {
   }
 
   function onPointerMove(e) {
-    if (!e.buttons) return;
+    if (!isPointerDown) return;
     const dx = e.clientX - pointerStartX;
     const dy = e.clientY - pointerStartY;
     if (dx !== 0 || dy !== 0) {
@@ -525,6 +316,7 @@ function setupInteraction() {
   }
 
   function onPointerUp(e) {
+    isPointerDown = false;
     canvas.releasePointerCapture(e.pointerId);
     if (!isDragging && currentGroup) {
       const rect = canvas.getBoundingClientRect();
