@@ -38,6 +38,16 @@
     </div>
   </div>
 
+  <div class="emoji-bar" id="emoji-bar">
+    <button class="emoji-bar__btn" id="emoji-prev" aria-label="Previous">◀</button>
+    <div class="emoji-bar__track" id="emoji-track">
+      <button class="emoji-bar__item" id="emoji-0"></button>
+      <button class="emoji-bar__item" id="emoji-1"></button>
+      <button class="emoji-bar__item" id="emoji-2"></button>
+    </div>
+    <button class="emoji-bar__btn" id="emoji-next" aria-label="Next">▶</button>
+  </div>
+
   <div class="math-modal" id="math-modal">
     <div class="math-modal__box">
       <p class="math-modal__title">🔒 Parent Zone</p>
@@ -57,23 +67,27 @@
       <div class="help-modal__steps">
         <div class="help-modal__step" style="animation-delay:0s">
           <span class="help-modal__step-icon">👆</span>
-          <span class="help-modal__step-text" id="help-step-1">Tap benda 3D untuk melihat dan mendengar namanya</span>
+          <span class="help-modal__step-text" id="help-step-1">Tap benda 3D untuk mendengar namanya</span>
         </div>
         <div class="help-modal__step" style="animation-delay:0.12s">
-          <span class="help-modal__step-icon">🔊</span>
-          <span class="help-modal__step-text" id="help-step-2">Setiap benda mengeluarkan suara dan bergerak lucu!</span>
+          <span class="help-modal__step-icon">👉</span>
+          <span class="help-modal__step-text" id="help-step-2">Geser ke kiri/kanan untuk memutar benda</span>
         </div>
         <div class="help-modal__step" style="animation-delay:0.24s">
-          <span class="help-modal__step-icon">🎯</span>
-          <span class="help-modal__step-text" id="help-step-3">Ada 20 benda seru untuk dijelajahi</span>
+          <span class="help-modal__step-icon">◀▶</span>
+          <span class="help-modal__step-text" id="help-step-3">Tekan ◀ atau ▶ untuk ganti benda</span>
         </div>
         <div class="help-modal__step" style="animation-delay:0.36s">
+          <span class="help-modal__step-icon">😊</span>
+          <span class="help-modal__step-text" id="help-step-4">Ada 20 benda seru untuk dijelajahi!</span>
+        </div>
+        <div class="help-modal__step" style="animation-delay:0.48s">
           <span class="help-modal__step-icon">⛶</span>
           <span class="help-modal__step-text">Tekan ⛶ untuk masuk mode layar penuh</span>
         </div>
-        <div class="help-modal__step" style="animation-delay:0.48s">
+        <div class="help-modal__step" style="animation-delay:0.6s">
           <span class="help-modal__step-icon">🌐</span>
-          <span class="help-modal__step-text" id="help-step-5">Tekan 🇬🇧 atau 🇮🇩 untuk ganti bahasa (perlu jawab soal)</span>
+          <span class="help-modal__step-text" id="help-step-6">Tekan 🇬🇧 atau 🇮🇩 untuk ganti bahasa (perlu jawab soal)</span>
         </div>
       </div>
       <button class="help-modal__btn" id="help-close">Mengerti!</button>

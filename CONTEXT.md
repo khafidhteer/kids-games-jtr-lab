@@ -5,15 +5,20 @@ A collection of zero-frustration browser games for children aged 2–6 with bili
 ## Language
 
 **Jelajah 3D**:
-A 3D exploratory game where toddlers tap interactive objects rendered with Three.js to hear their names spoken aloud. Objects are geometric primitives or simple science-themed compositions built from combined Three.js geometries.
-_Avoid_: 3D Toybox, Explore 3D
+A 3D exploratory game where toddlers browse a carousel of 20 interactive objects (11 geometric, 9 science-themed) rendered with Three.js. One object is shown at a time; children navigate via an emoji pagination bar at the bottom of the screen and can drag to rotate each object.
+_Avoid_: 3D Toybox
 
 **Geometric Object**:
-A 3D shape built from a single Three.js geometry primitive (SphereGeometry, BoxGeometry, ConeGeometry, etc.) with a solid color PBR material.
-_Avoid_: Shape, primitive, mesh
+A 3D shape built from a single Three.js geometry primitive (SphereGeometry, BoxGeometry, ConeGeometry, IcosahedronGeometry, etc.) with a solid color PBR material.
 
 **Science Object**:
-A 3D object composed of multiple Three.js geometries grouped together to represent a recognisable science-themed item (rocket, planet, atom, lightbulb). Each part may have a different material.
+A 3D object composed of multiple Three.js geometries grouped to represent a recognisable science-themed item (SpaceX-inspired rocket, Celestron-inspired telescope, planet with ring, atom with orbiting electrons, globe with map texture).
+
+**Emoji Carousel**:
+A paginated bottom bar showing 3 emoji icons at a time from the 20-object collection. Prev/◀ and next/▶ buttons scroll the emoji strip. Tapping an emoji selects and displays the corresponding 3D object.
+
+**Drag-to-Rotate**:
+A touch interaction where the child drags left/right on the screen to spin the currently displayed 3D object around its Y axis. No auto-rotation — the child controls the viewing angle.
 
 **Zero-Frustration**:
 A design principle where every interaction produces immediate positive feedback. No scores, timers, lose states, wrong answers, or rules. The child cannot make a "mistake."
