@@ -500,48 +500,38 @@ function init() {
 
 function setupInteraction() {
   const canvas = renderer.domElement;
-
-  function getPointerPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX !== undefined ? e.clientX : e.changedTouches[0].clientX;
-    const y = e.clientY !== undefined ? e.clientY : e.changedTouches[0].clientY;
-    return {
-      nx: ((x - rect.left) / rect.width) * 2 - 1,
-      ny: -((y - rect.top) / rect.height) * 2 + 1,
-      x, y,
-    };
-  }
+  canvas.style.touchAction = 'none';
 
   function onPointerDown(e) {
-    const pos = getPointerPos(e);
-    pointerStartX = pos.x;
-    pointerStartY = pos.y;
+    pointerStartX = e.clientX;
+    pointerStartY = e.clientY;
     isDragging = false;
-    document.addEventListener('pointermove', onPointerMove);
-    document.addEventListener('pointerup', onPointerUp);
+    canvas.setPointerCapture(e.pointerId);
   }
 
   function onPointerMove(e) {
+    if (!e.buttons) return;
     const dx = e.clientX - pointerStartX;
     const dy = e.clientY - pointerStartY;
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
       isDragging = true;
     }
     if (currentGroup && isDragging) {
-      currentGroup.rotation.y += dx * 0.01;
-      currentGroup.rotation.x += dy * 0.01;
+      currentGroup.rotation.y += dx * 0.018;
+      currentGroup.rotation.x += dy * 0.018;
       pointerStartX = e.clientX;
       pointerStartY = e.clientY;
     }
   }
 
   function onPointerUp(e) {
-    document.removeEventListener('pointermove', onPointerMove);
-    document.removeEventListener('pointerup', onPointerUp);
+    canvas.releasePointerCapture(e.pointerId);
     if (!isDragging && currentGroup) {
-      const pos = getPointerPos(e);
+      const rect = canvas.getBoundingClientRect();
+      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ny = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       const raycaster = new THREE.Raycaster();
-      const pointer = new THREE.Vector2(pos.nx, pos.ny);
+      const pointer = new THREE.Vector2(nx, ny);
       raycaster.setFromCamera(pointer, camera);
       const meshes = [];
       currentGroup.traverse(node => { if (node.isMesh) meshes.push(node); });
@@ -553,6 +543,8 @@ function setupInteraction() {
   }
 
   canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
+  canvas.addEventListener('pointerup', onPointerUp);
 }
 
 function onObjectTap(group) {
