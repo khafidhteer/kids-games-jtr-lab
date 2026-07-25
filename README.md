@@ -8,12 +8,14 @@ A collection of lightweight browser games for children aged 2–6. Designed for 
 
 | # | Game | Concept |
 |---|------|---------|
-| 1 | [Magic Canvas](games/magic-canvas/) | Cause & Effect — tap to spawn colorful floating shapes |
-| 2 | [Animal Soundboard](games/animal-soundboard/) | Bilingual animal names with real animal sounds (EN/ID) |
+| 1 | [Jelajah 3D](games/3d-toybox/) | Explore 20 interactive 3D objects — geometry + science (EN/ID) |
+| 2 | [Magic Canvas](games/magic-canvas/) | Cause & Effect — tap to spawn colorful floating shapes |
+| 3 | [Animal Soundboard](games/animal-soundboard/) | Bilingual animal names with real animal sounds (EN/ID) |
 
 ## Tech
 
-- Vanilla JS (ES modules) — no frameworks, no build tools
+- Vanilla JS (ES modules) — no build tools
+- [Three.js](https://threejs.org) via CDN (jsDelivr) for WebGL 3D rendering
 - HTML5 Canvas, CSS Grid, SVG
 - Web Audio API for synthesized effects
 - [Mixkit](https://mixkit.co/free-sound-effects/animals/) open-source MP3s for animal sounds
@@ -37,6 +39,7 @@ kids-games/
 │   ├── audio/animals/          # MP3 animal sounds (mixkit)
 │   └── svg/icons.svg           # UI icon sprite
 ├── games/
+│   ├── 3d-toybox/              # Game — Jelajah 3D (Three.js)
 │   ├── magic-canvas/           # Game 1
 │   └── animal-soundboard/      # Game 2
 └── memory-bank/                # Project memory bank
