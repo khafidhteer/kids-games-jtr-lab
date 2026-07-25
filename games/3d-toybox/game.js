@@ -529,6 +529,7 @@ function setupInteraction() {
     }
     if (currentGroup && isDragging) {
       currentGroup.rotation.y += dx * 0.01;
+      currentGroup.rotation.x += dy * 0.01;
       pointerStartX = e.clientX;
       pointerStartY = e.clientY;
     }
