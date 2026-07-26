@@ -13,6 +13,8 @@ let currentObjectIndex = -1;
 let isDragging = false;
 let pointerStartX = 0;
 let pointerStartY = 0;
+let orbitAzimuth = 0;
+let orbitElevation = 0;
 
 const VISIBLE_EMOJIS = 3;
 
@@ -152,17 +154,27 @@ function showObject(index, animate = true) {
     disposeObject(currentGroup);
   }
 
-  group.position.set(0, 0.3, 0);
+  orbitAzimuth = 0;
+  orbitElevation = 0;
 
-  if (def.type === 'science' && def.id !== 'telescope') {
-    group.scale.setScalar(0.8);
+  if (def.id === 'rocket') {
+    group.position.set(0, 0, 0);
+    group.rotation.set(0, 0, 0);
+    camera.position.set(0, 0, 2.22);
+    camera.lookAt(0, 0, 0);
+  } else {
+    group.position.set(0, 0.3, 0);
+    camera.position.set(0, 1.5, 5);
+    camera.lookAt(0, 0.3, 0);
+    if (def.type === 'science' && def.id !== 'telescope') {
+      group.scale.setScalar(0.8);
+    }
+    if (def.id === 'telescope') {
+      group.scale.setScalar(0.85);
+    }
+    group.rotation.x = 0.1;
+    group.rotation.y = 0.3;
   }
-  if (def.id === 'telescope') {
-    group.scale.setScalar(0.85);
-  }
-
-  group.rotation.x = 0.1;
-  group.rotation.y = 0.3;
 
   setObjUserData(group, def);
 
@@ -264,9 +276,6 @@ function init() {
 
   scene.add(createParticles(THREE));
 
-  const cloudPositions = [[-4, 4, -6], [3, 4.5, -7], [0, 5, -8], [-5, 3, -9], [5, 3.5, -5]];
-  cloudPositions.forEach(([x, y, z]) => scene.add(createCloud(THREE, x, y, z)));
-
   const randomIndex = Math.floor(Math.random() * objectDefs.length);
   showObject(randomIndex, false);
   emojiStartIndex = Math.min(Math.max(randomIndex - 1, 0), objectDefs.length - VISIBLE_EMOJIS);
@@ -310,8 +319,19 @@ function setupInteraction() {
       isDragging = true;
     }
     if (currentGroup && isDragging) {
-      currentGroup.rotation.y += dx * 0.045;
-      currentGroup.rotation.x += dy * 0.045;
+      if (currentGroup.userData.id === 'rocket') {
+        orbitAzimuth -= dx * 0.01;
+        orbitElevation += dy * 0.01;
+        orbitElevation = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, orbitElevation));
+        const r = 2.22;
+        camera.position.x = r * Math.cos(orbitElevation) * Math.sin(orbitAzimuth);
+        camera.position.y = r * Math.sin(orbitElevation);
+        camera.position.z = r * Math.cos(orbitElevation) * Math.cos(orbitAzimuth);
+        camera.lookAt(0, 0, 0);
+      } else {
+        currentGroup.rotation.y += dx * 0.045;
+        currentGroup.rotation.x += dy * 0.045;
+      }
       pointerStartX = e.clientX;
       pointerStartY = e.clientY;
     }

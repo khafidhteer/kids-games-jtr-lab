@@ -40,6 +40,11 @@ kids-games/
 │   └── svg/icons.svg           # UI icon sprite
 ├── games/
 │   ├── 3d-toybox/              # Game — Jelajah 3D (Three.js)
+│   │   ├── index.html
+│   │   ├── style.css
+│   │   ├── game.js             # Scene setup, interaction, animation loop
+│   │   ├── models.js           # 20 object factory functions (geo + science)
+│   │   └── falcon-heavy.js     # Falcon Heavy rocket model (3 boosters, decals, engines)
 │   ├── magic-canvas/           # Game 1
 │   └── animal-soundboard/      # Game 2
 └── memory-bank/                # Project memory bank

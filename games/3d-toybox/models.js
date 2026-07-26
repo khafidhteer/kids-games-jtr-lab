@@ -1,3 +1,5 @@
+import { createFalconHeavy } from './falcon-heavy.js'
+
 function mat(T, c, opts = {}) {
   return new T.MeshStandardMaterial({ color: c, roughness: 0.35, metalness: 0.15, ...opts })
 }
@@ -139,37 +141,7 @@ export function createPlanet(T, color) {
 }
 
 export function createRocket(T, color) {
-  const g = new T.Group()
-  const body = new T.Mesh(new T.CylinderGeometry(0.12, 0.14, 0.35, 16), mat(T, 0xEEEEEE, { roughness: 0.2 }))
-  body.position.y = 0
-  const interstage = new T.Mesh(new T.CylinderGeometry(0.12, 0.12, 0.03, 16), mat(T, 0x222222, { roughness: 0.4 }))
-  interstage.position.y = 0.19
-  const secondStage = new T.Mesh(new T.CylinderGeometry(0.10, 0.12, 0.18, 16), mat(T, 0xDDDDDD, { roughness: 0.2 }))
-  secondStage.position.y = 0.32
-  const noseCone = new T.Mesh(new T.ConeGeometry(0.10, 0.16, 16), mat(T, 0xEEEEEE, { roughness: 0.2 }))
-  noseCone.position.y = 0.48
-  g.add(body, interstage, secondStage, noseCone)
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 3; col++) {
-      const nozzle = new T.Mesh(new T.CylinderGeometry(0.018, 0.022, 0.03, 8), mat(T, 0x444444, { metalness: 0.6 }))
-      nozzle.position.set((col - 1) * 0.065, -0.175, (row - 1) * 0.065)
-      g.add(nozzle)
-    }
-  }
-  for (let i = 0; i < 4; i++) {
-    const angle = (i / 4) * Math.PI * 2
-    const leg = new T.Mesh(new T.BoxGeometry(0.015, 0.1, 0.03), mat(T, 0x555555, { metalness: 0.3 }))
-    leg.position.set(Math.cos(angle) * 0.14, -0.1, Math.sin(angle) * 0.14)
-    g.add(leg)
-  }
-  for (let i = 0; i < 4; i++) {
-    const angle = (i / 4) * Math.PI * 2
-    const fin = new T.Mesh(new T.BoxGeometry(0.03, 0.05, 0.015), mat(T, 0x333333, { metalness: 0.3 }))
-    fin.position.set(Math.cos(angle) * 0.14, 0.12, Math.sin(angle) * 0.14)
-    g.add(fin)
-  }
-  g.userData = { id: 'rocket' }
-  return g
+  return createFalconHeavy(T)
 }
 
 export function createAtom(T, color) {
