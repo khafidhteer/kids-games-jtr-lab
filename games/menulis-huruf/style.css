@@ -1,0 +1,479 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Fredoka One', 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+#trace-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  touch-action: none;
+  display: block;
+}
+
+/* Header */
+.game-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.game-header__btn {
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 0.15s ease, background 0.15s ease;
+  padding: 0;
+}
+
+.game-header__btn:hover,
+.game-header__btn:active {
+  transform: scale(1.1);
+  background: rgba(0,0,0,0.55);
+}
+
+.game-header__btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.game-header__btns {
+  display: flex;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+/* Letter label + mode */
+.letter-label {
+  position: fixed;
+  top: 74px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(2.5rem, 9vw, 5rem);
+  font-weight: 500;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.35);
+  z-index: 50;
+  pointer-events: none;
+}
+
+.mode-indicator {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  opacity: 0.6;
+  z-index: 50;
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+  background: rgba(0,0,0,0.25);
+  padding: 3px 12px;
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+}
+
+/* Bottom nav */
+.trace-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 14px 0 calc(14px + env(safe-area-inset-bottom));
+  z-index: 100;
+  pointer-events: none;
+}
+
+.trace-nav__arrow {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.3);
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 0.15s ease, background 0.15s ease;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.trace-nav__arrow:active {
+  transform: scale(0.9);
+  background: rgba(0,0,0,0.45);
+}
+
+/* Math gate */
+.math-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+}
+
+.math-modal.visible {
+  display: flex;
+}
+
+.math-modal__box {
+  background: #2a2a4a;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 24px;
+  padding: 28px 24px;
+  text-align: center;
+  min-width: 260px;
+  max-width: 90vw;
+}
+
+.math-modal__title {
+  font-size: 0.95rem;
+  opacity: 0.8;
+  margin-bottom: 12px;
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: 600;
+}
+
+.math-modal__question {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.math-modal__input {
+  width: 80px;
+  padding: 10px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-align: center;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  -moz-appearance: textfield;
+  font-family: inherit;
+}
+
+.math-modal__input::-webkit-inner-spin-button,
+.math-modal__input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.math-modal__btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.math-modal__btn {
+  padding: 10px 28px;
+  border-radius: 16px;
+  border: 2px solid rgba(255,255,255,0.2);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #fff;
+  pointer-events: auto;
+  font-family: inherit;
+}
+
+.math-modal__btn--ok { background: rgba(80,180,80,0.7); border-color: rgba(80,180,80,0.5); }
+.math-modal__btn--ok:active { transform: scale(0.95); }
+.math-modal__btn--cancel { background: rgba(180,80,80,0.7); border-color: rgba(180,80,80,0.5); }
+.math-modal__btn--cancel:active { transform: scale(0.95); }
+
+/* Settings panel */
+.settings-panel {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-panel.visible {
+  display: flex;
+}
+
+.settings-panel__box {
+  background: #2a2a4a;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 24px;
+  padding: 24px;
+  text-align: center;
+  min-width: 320px;
+  max-width: 90vw;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.settings-panel__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.settings-panel__label {
+  display: block;
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin: 14px 0 6px;
+  text-align: left;
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: 600;
+}
+
+.settings-panel__mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.settings-panel__mode label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  font-weight: 400;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.settings-panel__mode input[type="radio"],
+.settings-panel__mode input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #4FACFE;
+  cursor: pointer;
+}
+
+.letter-picker {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.picker__btn {
+  padding: 10px 0;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 1.1rem;
+  font-family: 'Fredoka One', 'Segoe UI', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.picker__btn.active {
+  background: rgba(255, 217, 61, 0.5);
+  border-color: #ffd93d;
+  transform: scale(1.08);
+}
+
+.picker__btn:active {
+  transform: scale(0.92);
+}
+
+.settings-panel__btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.settings-panel__btn {
+  padding: 10px 24px;
+  border-radius: 16px;
+  border: 2px solid rgba(255,255,255,0.2);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #fff;
+  font-family: inherit;
+  pointer-events: auto;
+}
+
+.settings-panel__btn--apply { background: rgba(60,130,220,0.7); border-color: rgba(60,130,220,0.5); }
+.settings-panel__btn--apply:active { transform: scale(0.95); }
+.settings-panel__btn--cancel { background: rgba(180,80,80,0.7); border-color: rgba(180,80,80,0.5); }
+.settings-panel__btn--cancel:active { transform: scale(0.95); }
+
+/* Help modal */
+.help-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.help-modal.visible {
+  display: flex;
+}
+
+.help-modal__box {
+  background: #2a2a4a;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 24px;
+  padding: 24px 20px;
+  text-align: center;
+  min-width: 280px;
+  max-width: 400px;
+  width: 100%;
+}
+
+.help-modal__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.help-modal__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.help-modal__step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.08);
+  opacity: 0;
+  transform: translateX(-20px);
+  animation: helpStepIn 0.4s ease-out forwards;
+}
+
+.help-modal__step-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-modal__step-text {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  font-weight: 500;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.help-modal__btn {
+  padding: 12px 32px;
+  border-radius: 20px;
+  border: 2px solid rgba(255,255,255,0.25);
+  background: rgba(60,130,220,0.6);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  pointer-events: auto;
+}
+
+.help-modal__btn:active {
+  transform: scale(0.95);
+}
+
+@keyframes helpStepIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* iOS fullscreen hint */
+.ios-fullscreen-hint {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+}
+
+.ios-fullscreen-hint.visible {
+  display: flex;
+}
+
+.ios-fullscreen-hint__box {
+  text-align: center;
+  max-width: 320px;
+  padding: 30px 24px;
+}
+
+.ios-fullscreen-hint__icon { font-size: 4rem; margin-bottom: 12px; }
+.ios-fullscreen-hint__title { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+.ios-fullscreen-hint__text { font-size: 0.9rem; opacity: 0.7; line-height: 1.5; margin-bottom: 20px; font-family: 'Segoe UI', sans-serif; }
+.ios-fullscreen-hint__btn { padding: 12px 32px; border-radius: 20px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+.ios-fullscreen-hint__btn:active { transform: scale(0.95); }

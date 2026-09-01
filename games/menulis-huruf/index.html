@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Menulis Huruf — Kids Games</title>
+  <link rel="stylesheet" href="../../css/style.css?v=20260901">
+  <link rel="stylesheet" href="style.css?v=20260901">
+</head>
+<body>
+  <div class="game-header">
+    <button class="game-header__btn" id="back-btn" aria-label="Back to games">
+      <svg><use href="../../assets/svg/icons.svg#icon-back"/></svg>
+    </button>
+    <div class="game-header__btns">
+      <button class="game-header__btn" id="help-btn" aria-label="Bantuan">
+        <svg><use href="../../assets/svg/icons.svg#icon-help"/></svg>
+      </button>
+      <button class="game-header__btn" id="sound-toggle" aria-label="Toggle sound">
+        <span class="game-header__icon" style="font-size:1.3rem">🔊</span>
+      </button>
+      <button class="game-header__btn" id="fullscreen-btn" aria-label="Fullscreen">
+        <span style="font-size:1.3rem">⛶</span>
+      </button>
+      <button class="game-header__btn" id="settings-btn" aria-label="Settings">
+        <svg><use href="../../assets/svg/icons.svg#icon-settings"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <canvas id="trace-canvas"></canvas>
+
+  <div class="letter-label" id="letter-label">A</div>
+  <div class="mode-indicator" id="mode-indicator"></div>
+
+  <div class="trace-nav" id="trace-nav">
+    <button class="trace-nav__arrow" id="prev-letter">‹</button>
+    <div class="trace-nav__dots" id="letter-dots"></div>
+    <button class="trace-nav__arrow" id="next-letter">›</button>
+  </div>
+
+  <div class="math-modal" id="math-modal">
+    <div class="math-modal__box">
+      <p class="math-modal__title">🔒 Parent Zone</p>
+      <p class="math-modal__title" style="font-size:0.8rem;margin-bottom:8px">Solve to enter settings</p>
+      <p class="math-modal__question" id="math-question">3 + 4 = ?</p>
+      <input class="math-modal__input" id="math-answer" type="number" inputmode="numeric" autocomplete="off" placeholder="?" />
+      <div class="math-modal__btns">
+        <button class="math-modal__btn math-modal__btn--ok" id="math-submit">OK</button>
+        <button class="math-modal__btn math-modal__btn--cancel" id="math-cancel">✗</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-panel" id="settings-panel">
+    <div class="settings-panel__box">
+      <div class="settings-panel__title">⚙️ Game Settings</div>
+
+      <div class="settings-panel__label">Letters:</div>
+      <div class="settings-panel__mode">
+        <label><input type="radio" name="case" value="upper" /> 🔠 Uppercase</label>
+        <label><input type="radio" name="case" value="lower" /> 🔡 Lowercase</label>
+        <label><input type="radio" name="case" value="both" /> 🔤 Both</label>
+      </div>
+
+      <div class="settings-panel__label">Language:</div>
+      <div class="settings-panel__mode">
+        <label><input type="radio" name="lang" value="id" /> 🇮🇩 Bahasa Indonesia</label>
+        <label><input type="radio" name="lang" value="en" /> 🇬🇧 English</label>
+      </div>
+
+      <div class="settings-panel__label">Sound:</div>
+      <div class="settings-panel__mode">
+        <label><input type="checkbox" id="settings-sound" checked /> 🔊 Sound on</label>
+      </div>
+
+      <div class="settings-panel__label">Jump to letter:</div>
+      <div class="letter-picker" id="letter-picker"></div>
+
+      <div class="settings-panel__btns">
+        <button class="settings-panel__btn settings-panel__btn--apply" id="settings-apply">Apply</button>
+        <button class="settings-panel__btn settings-panel__btn--cancel" id="settings-cancel">✗</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="help-modal" id="help-modal">
+    <div class="help-modal__box">
+      <div class="help-modal__title" id="help-title">Cara Bermain</div>
+      <div class="help-modal__steps" id="help-steps"></div>
+      <button class="help-modal__btn" id="help-close">Mengerti!</button>
+    </div>
+  </div>
+
+  <div class="ios-fullscreen-hint" id="ios-hint">
+    <div class="ios-fullscreen-hint__box">
+      <div class="ios-fullscreen-hint__icon">📱</div>
+      <div class="ios-fullscreen-hint__title">Fullscreen</div>
+      <div class="ios-fullscreen-hint__text">For the best experience, tap the Share icon and select "Add to Home Screen".</div>
+      <button class="ios-fullscreen-hint__btn" id="ios-hint-btn">Got it!</button>
+    </div>
+  </div>
+
+  <script type="module" src="game.js?v=20260901"></script>
+</body>
+</html>
