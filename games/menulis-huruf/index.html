@@ -1,117 +1,782 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <title>Menulis Huruf — Kids Games</title>
-  <link rel="stylesheet" href="../../css/style.css?v=20260903">
-  <link rel="stylesheet" href="style.css?v=20260903">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Belajar Menulis Huruf A-Z Lengkap</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: 'Fredoka One', 'Comic Sans MS', 'Chalkboard SE', system-ui, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overscroll-behavior: none;
+            -webkit-text-size-adjust: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #0f172a;
+            margin: 6px 0 6px;
+            font-size: 20px;
+            font-family: 'Fredoka One', sans-serif;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .btn-mode {
+            padding: 4px 14px;
+            font-family: 'Fredoka One', sans-serif;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 20px;
+            border: 2px solid #cbd5e1;
+            background: #fff;
+            color: #475569;
+            cursor: pointer;
+        }
+
+        .btn-mode.active {
+            background: #0284c7;
+            color: #fff;
+            border-color: #0369a1;
+        }
+
+        .picker-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            max-width: 360px;
+            margin-bottom: 6px;
+        }
+
+        .nav-arrow {
+            width: 34px; height: 34px;
+            font-size: 16px; font-weight: bold;
+            border-radius: 50%;
+            border: 2px solid #cbd5e1;
+            background: #ffffff;
+            color: #334155;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+            font-family: inherit;
+        }
+
+        .nav-arrow:active { background: #e2e8f0; }
+
+        .letters-scroll {
+            display: flex;
+            gap: 5px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: 2px 2px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .letters-scroll::-webkit-scrollbar { display: none; }
+
+        .btn-letter {
+            width: 38px; height: 38px;
+            font-size: 17px; font-weight: bold;
+            font-family: 'Fredoka One', sans-serif;
+            background-color: #ffffff;
+            color: #334155;
+            border: 2px solid #cbd5e1;
+            border-radius: 10px;
+            cursor: pointer;
+            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.1s ease;
+        }
+
+        .btn-letter.active {
+            background-color: #0284c7;
+            color: white;
+            border-color: #0369a1;
+            transform: scale(1.08);
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 340px;
+            height: 340px;
+            background: #ffffff;
+            border: 5px solid #94a3b8;
+            border-radius: 28px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            touch-action: none;
+            flex-shrink: 0;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            border-radius: 22px;
+        }
+
+        #message {
+            margin-top: 6px;
+            font-size: 18px;
+            font-weight: bold;
+            font-family: 'Fredoka One', sans-serif;
+            color: #059669;
+            height: 26px;
+            text-align: center;
+        }
+
+        .btn-reset {
+            margin-top: 4px;
+            padding: 6px 18px;
+            font-size: 14px;
+            font-weight: bold;
+            font-family: 'Fredoka One', sans-serif;
+            background-color: #f59e0b;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-reset:active { background-color: #d97706; }
+    </style>
 </head>
 <body>
-  <div class="game-header">
-    <button class="game-header__btn" id="back-btn" aria-label="Back to games">
-      <svg><use href="../../assets/svg/icons.svg#icon-back"/></svg>
-    </button>
-    <div class="game-header__btns">
-      <button class="game-header__btn" id="help-btn" aria-label="Bantuan">
-        <svg><use href="../../assets/svg/icons.svg#icon-help"/></svg>
-      </button>
-      <button class="game-header__btn" id="sound-toggle" aria-label="Toggle sound">
-        <span class="game-header__icon" style="font-size:1.3rem">🔊</span>
-      </button>
-      <button class="game-header__btn" id="fullscreen-btn" aria-label="Fullscreen">
-        <span style="font-size:1.3rem">⛶</span>
-      </button>
-      <button class="game-header__btn" id="settings-btn" aria-label="Settings">
-        <svg><use href="../../assets/svg/icons.svg#icon-settings"/></svg>
-      </button>
+
+    <h1>Ayo Menulis Huruf!</h1>
+
+    <div class="mode-toggle">
+        <button class="btn-mode active" id="btn-mode-upper" onclick="setMode('upper')">KAPITAL (A-Z)</button>
+        <button class="btn-mode" id="btn-mode-lower" onclick="setMode('lower')">Kecil (a-z)</button>
     </div>
-  </div>
 
-  <canvas id="trace-canvas"></canvas>
-
-  <div class="mode-indicator" id="mode-indicator"></div>
-
-  <div class="trace-nav" id="trace-nav">
-    <button class="trace-nav__arrow" id="prev-letter">‹</button>
-    <div class="trace-nav__dots" id="letter-dots"></div>
-    <button class="trace-nav__arrow" id="next-letter">›</button>
-  </div>
-
-  <!-- Reward reveal shown when a letter is finished -->
-  <div class="reward-card" id="reward-card">
-    <div class="reward-card__badge">
-      <div class="reward-card__letter" id="reward-letter">A</div>
-      <div class="reward-card__emoji" id="reward-emoji">🍎</div>
-      <div class="reward-card__word" id="reward-word">Apel</div>
+    <div class="picker-container">
+        <button class="nav-arrow" onclick="navLetter(-1)">◀</button>
+        <div class="letters-scroll" id="letter-list"></div>
+        <button class="nav-arrow" onclick="navLetter(1)">▶</button>
     </div>
-  </div>
-
-  <div class="math-modal" id="math-modal">
-    <div class="math-modal__box">
-      <p class="math-modal__title">🔒 Parent Zone</p>
-      <p class="math-modal__title" style="font-size:0.8rem;margin-bottom:8px">Solve to enter settings</p>
-      <p class="math-modal__question" id="math-question">3 + 4 = ?</p>
-      <input class="math-modal__input" id="math-answer" type="number" inputmode="numeric" autocomplete="off" placeholder="?" />
-      <div class="math-modal__btns">
-        <button class="math-modal__btn math-modal__btn--ok" id="math-submit">OK</button>
-        <button class="math-modal__btn math-modal__btn--cancel" id="math-cancel">✗</button>
-      </div>
+    
+    <div id="canvas-container">
+        <canvas id="bg-canvas" width="340" height="340"></canvas>
+        <canvas id="ink-canvas" width="340" height="340"></canvas>
+        <canvas id="puck-canvas" width="340" height="340"></canvas>
     </div>
-  </div>
 
-  <div class="settings-panel" id="settings-panel">
-    <div class="settings-panel__box">
-      <div class="settings-panel__title">⚙️ Game Settings</div>
+    <div id="message"></div>
+    <button class="btn-reset" onclick="resetLetter()">Hapus & Ulangi</button>
 
-      <div class="settings-panel__label">Letters:</div>
-      <div class="settings-panel__mode">
-        <label><input type="radio" name="case" value="upper" /> 🔠 Uppercase</label>
-        <label><input type="radio" name="case" value="lower" /> 🔡 Lowercase</label>
-        <label><input type="radio" name="case" value="both" /> 🔤 Both</label>
-      </div>
+    <script>
+        const bgCanvas = document.getElementById('bg-canvas');
+        const inkCanvas = document.getElementById('ink-canvas');
+        const puckCanvas = document.getElementById('puck-canvas');
 
-      <div class="settings-panel__label">Language:</div>
-      <div class="settings-panel__mode">
-        <label><input type="radio" name="lang" value="id" /> 🇮🇩 Bahasa Indonesia</label>
-        <label><input type="radio" name="lang" value="en" /> 🇬🇧 English</label>
-      </div>
+        const ctxBg = bgCanvas.getContext('2d');
+        const ctxInk = inkCanvas.getContext('2d');
+        const ctxPuck = puckCanvas.getContext('2d');
+        const messageEl = document.getElementById('message');
+        const letterListEl = document.getElementById('letter-list');
 
-      <div class="settings-panel__label">Sound:</div>
-      <div class="settings-panel__mode">
-        <label><input type="checkbox" id="settings-sound" checked /> 🔊 Sound on</label>
-      </div>
+        const railWidth = 44;
+        const puckRadius = 20;
 
-      <div class="settings-panel__label">Jump to letter:</div>
-      <div class="letter-picker" id="letter-picker"></div>
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = 340;
+        maskCanvas.height = 340;
+        const ctxMask = maskCanvas.getContext('2d');
 
-      <div class="settings-panel__btns">
-        <button class="settings-panel__btn settings-panel__btn--apply" id="settings-apply">Apply</button>
-        <button class="settings-panel__btn settings-panel__btn--cancel" id="settings-cancel">✗</button>
-      </div>
-    </div>
-  </div>
+        // FUNGSI INTERPOLASI CATMULL-ROM SPLINE
+        function generateSpline(controlPoints, segmentsPerSpan = 8) {
+            const points = [];
+            const n = controlPoints.length;
+            if (n < 2) return controlPoints;
 
-  <div class="help-modal" id="help-modal">
-    <div class="help-modal__box">
-      <div class="help-modal__title" id="help-title">Cara Bermain</div>
-      <div class="help-modal__steps" id="help-steps"></div>
-      <button class="help-modal__btn" id="help-close">Mengerti!</button>
-    </div>
-  </div>
+            for (let i = 0; i < n - 1; i++) {
+                const p0 = i > 0 ? controlPoints[i - 1] : controlPoints[i];
+                const p1 = controlPoints[i];
+                const p2 = controlPoints[i + 1];
+                const p3 = i + 2 < n ? controlPoints[i + 2] : p2;
 
-  <div class="ios-fullscreen-hint" id="ios-hint">
-    <div class="ios-fullscreen-hint__box">
-      <div class="ios-fullscreen-hint__icon">📱</div>
-      <div class="ios-fullscreen-hint__title">Fullscreen</div>
-      <div class="ios-fullscreen-hint__text">For the best experience, tap the Share icon and select "Add to Home Screen".</div>
-      <button class="ios-fullscreen-hint__btn" id="ios-hint-btn">Got it!</button>
-    </div>
-  </div>
+                for (let step = 0; step < segmentsPerSpan; step++) {
+                    const t = step / segmentsPerSpan;
+                    const t2 = t * t;
+                    const t3 = t2 * t;
 
-  <script type="module" src="game.js?v=20260903"></script>
+                    const x = 0.5 * (
+                        (2 * p1.x) +
+                        (-p0.x + p2.x) * t +
+                        (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+                        (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3
+                    );
+
+                    const y = 0.5 * (
+                        (2 * p1.y) +
+                        (-p0.y + p2.y) * t +
+                        (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+                        (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3
+                    );
+
+                    points.push({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
+                }
+            }
+            points.push(controlPoints[n - 1]);
+            return points;
+        }
+
+        // FUNGSI MEMBANGKITKAN BUSUR ELIPS / LINGKARAN MURNI 100% BULAT
+        function generateEllipseArcPoints(cx, cy, rx, ry, startAngle, endAngle, steps = 38) {
+            const pts = [];
+            for (let i = 0; i <= steps; i++) {
+                const theta = startAngle + (endAngle - startAngle) * (i / steps);
+                pts.push({
+                    x: Math.round((cx + rx * Math.cos(theta)) * 10) / 10,
+                    y: Math.round((cy + ry * Math.sin(theta)) * 10) / 10
+                });
+            }
+            return pts;
+        }
+
+        // --- GEOMETRI LENGKAP 52 HURUF (A-Z & a-z) ---
+        const rawLetters = {
+            // KAPITAL
+            'A': [
+                [{x:170,y:45},{x:100,y:275}],
+                [{x:170,y:45},{x:240,y:275}],
+                [{x:125,y:195},{x:215,y:195}]
+            ],
+            'B': [
+                [{x:105,y:50},{x:105,y:275}],
+                generateSpline([{x:105,y:50},{x:190,y:50},{x:220,y:85},{x:220,y:135},{x:185,y:162},{x:105,y:162}], 6),
+                generateSpline([{x:105,y:162},{x:195,y:162},{x:228,y:190},{x:228,y:245},{x:190,y:275},{x:105,y:275}], 6)
+            ],
+            'C': [
+                generateSpline([{x:235,y:90},{x:185,y:50},{x:120,y:95},{x:95,y:162},{x:120,y:230},{x:185,y:275},{x:235,y:235}], 8)
+            ],
+            'D': [
+                [{x:105,y:50},{x:105,y:275}],
+                generateSpline([{x:105,y:50},{x:175,y:50},{x:235,y:105},{x:235,y:220},{x:175,y:275},{x:105,y:275}], 8)
+            ],
+            'E': [
+                [{x:105,y:50},{x:105,y:275}],
+                [{x:105,y:50},{x:225,y:50}],
+                [{x:105,y:162},{x:205,y:162}],
+                [{x:105,y:275},{x:225,y:275}]
+            ],
+            'F': [
+                [{x:105,y:50},{x:105,y:275}],
+                [{x:105,y:50},{x:225,y:50}],
+                [{x:105,y:162},{x:205,y:162}]
+            ],
+            'G': [
+                generateSpline([{x:235,y:90},{x:185,y:50},{x:120,y:95},{x:95,y:162},{x:120,y:230},{x:185,y:275},{x:235,y:250},{x:235,y:175},{x:175,y:175}], 8)
+            ],
+            'H': [
+                [{x:105,y:50},{x:105,y:275}],
+                [{x:235,y:50},{x:235,y:275}],
+                [{x:105,y:162},{x:235,y:162}]
+            ],
+            'I': [
+                [{x:170,y:50},{x:170,y:275}],
+                [{x:115,y:50},{x:225,y:50}],
+                [{x:115,y:275},{x:225,y:275}]
+            ],
+            'J': [
+                generateSpline([{x:210,y:50},{x:210,y:220},{x:190,y:265},{x:150,y:275},{x:115,y:245}], 7)
+            ],
+            'K': [
+                [{x:105,y:50},{x:105,y:275}],
+                [{x:225,y:60},{x:105,y:170}],
+                [{x:125,y:150},{x:235,y:275}]
+            ],
+            'L': [
+                [{x:105,y:50},{x:105,y:275},{x:235,y:275}]
+            ],
+            'M': [
+                [{x:95,y:275},{x:95,y:50},{x:170,y:195},{x:245,y:50},{x:245,y:275}]
+            ],
+            'N': [
+                [{x:100,y:275},{x:100,y:50},{x:240,y:275},{x:240,y:50}]
+            ],
+            // O: LINGKARAN OVAL MULUS 100% BULAT DENGAN PERSAMAAN TRIGONOMETRIK
+            'O': [
+                generateEllipseArcPoints(170, 162, 68, 110, -Math.PI / 2, -Math.PI / 2 - Math.PI * 2, 40)
+            ],
+            'P': [
+                [{x:105,y:50},{x:105,y:275}],
+                generateSpline([{x:105,y:50},{x:190,y:50},{x:230,y:85},{x:230,y:135},{x:185,y:170},{x:105,y:170}], 6)
+            ],
+            // Q: LINGKARAN OVAL SEMPURNA + EKOR DIAGONAL
+            'Q': [
+                generateEllipseArcPoints(170, 162, 68, 110, -Math.PI / 2, -Math.PI / 2 - Math.PI * 2, 40),
+                [{x:175,y:215},{x:238,y:275}]
+            ],
+            'R': [
+                [{x:105,y:50},{x:105,y:275}],
+                generateSpline([{x:105,y:50},{x:190,y:50},{x:230,y:85},{x:230,y:135},{x:185,y:170},{x:105,y:170}], 6),
+                [{x:170,y:170},{x:235,y:275}]
+            ],
+            'S': [
+                generateSpline([{x:230,y:90},{x:185,y:50},{x:130,y:75},{x:115,y:120},{x:150,y:155},{x:215,y:185},{x:230,y:225},{x:195,y:270},{x:125,y:265},{x:100,y:235}], 8)
+            ],
+            'T': [
+                [{x:95,y:50},{x:245,y:50}],
+                [{x:170,y:50},{x:170,y:275}]
+            ],
+            'U': [
+                generateSpline([{x:105,y:50},{x:105,y:210},{x:130,y:265},{x:170,y:275},{x:210,y:265},{x:235,y:210},{x:235,y:50}], 8)
+            ],
+            'V': [
+                [{x:95,y:50},{x:170,y:275},{x:245,y:50}]
+            ],
+            'W': [
+                [{x:85,y:50},{x:125,y:275},{x:170,y:135},{x:215,y:275},{x:255,y:50}]
+            ],
+            'X': [
+                [{x:100,y:50},{x:240,y:275}],
+                [{x:240,y:50},{x:100,y:275}]
+            ],
+            'Y': [
+                [{x:95,y:50},{x:170,y:162}],
+                [{x:245,y:50},{x:170,y:162}],
+                [{x:170,y:162},{x:170,y:275}]
+            ],
+            'Z': [
+                [{x:100,y:50},{x:240,y:50},{x:100,y:275},{x:240,y:275}]
+            ],
+
+            // KECIL
+            'a': [
+                generateSpline([{x:212,y:140},{x:175,y:135},{x:135,y:145},{x:108,y:172},{x:102,y:200},{x:115,y:228},{x:142,y:248},{x:178,y:248},{x:208,y:228},{x:212,y:185},{x:212,y:140}], 8),
+                generateSpline([{x:212,y:140},{x:212,y:180},{x:212,y:220},{x:212,y:250},{x:226,y:262}], 6)
+            ],
+            'b': [
+                [{x:110,y:50},{x:110,y:270}],
+                generateSpline([{x:110,y:170},{x:145,y:140},{x:195,y:145},{x:225,y:180},{x:225,y:225},{x:195,y:265},{x:145,y:270},{x:110,y:240}], 7)
+            ],
+            'c': [
+                generateSpline([{x:225,y:165},{x:185,y:135},{x:135,y:155},{x:110,y:200},{x:135,y:250},{x:185,y:268},{x:225,y:240}], 8)
+            ],
+            'd': [
+                generateSpline([{x:225,y:170},{x:190,y:140},{x:140,y:145},{x:110,y:180},{x:110,y:225},{x:140,y:265},{x:190,y:270},{x:225,y:240}], 7),
+                [{x:225,y:50},{x:225,y:270}]
+            ],
+            'e': [
+                generateSpline([
+                    {x:105,y:185},{x:145,y:185},{x:185,y:185},{x:214,y:178},{x:216,y:154},
+                    {x:198,y:134},{x:160,y:130},{x:126,y:142},{x:106,y:170},{x:104,y:202},
+                    {x:118,y:232},{x:148,y:250},{x:184,y:248},{x:214,y:228}
+                ], 9)
+            ],
+            'f': [
+                generateSpline([{x:220,y:60},{x:185,y:45},{x:155,y:65},{x:155,y:270}], 7),
+                [{x:120,y:145},{x:195,y:145}]
+            ],
+            'g': [
+                generateSpline([{x:215,y:140},{x:175,y:135},{x:135,y:145},{x:108,y:172},{x:108,y:210},{x:135,y:240},{x:175,y:245},{x:215,y:215},{x:215,y:140}], 7),
+                generateSpline([{x:215,y:140},{x:215,y:255},{x:195,y:295},{x:155,y:305},{x:120,y:285}], 7)
+            ],
+            'h': [
+                [{x:110,y:50},{x:110,y:270}],
+                generateSpline([{x:110,y:175},{x:145,y:135},{x:195,y:140},{x:220,y:175},{x:220,y:270}], 7)
+            ],
+            'i': [
+                [{x:170,y:135},{x:170,y:265}],
+                [{x:170,y:75},{x:170,y:85}] // Titik i
+            ],
+            'j': [
+                generateSpline([{x:195,y:135},{x:195,y:265},{x:175,y:300},{x:135,y:305},{x:105,y:280}], 7),
+                [{x:195,y:75},{x:195,y:85}]
+            ],
+            'k': [
+                [{x:110,y:50},{x:110,y:270}],
+                [{x:215,y:135},{x:115,y:215}],
+                [{x:145,y:195},{x:225,y:270}]
+            ],
+            'l': [
+                [{x:170,y:50},{x:170,y:255},{x:185,y:268}]
+            ],
+            'm': [
+                [{x:95,y:140},{x:95,y:270}],
+                generateSpline([{x:95,y:180},{x:125,y:138},{x:165,y:145},{x:170,y:270}], 6),
+                generateSpline([{x:170,y:180},{x:200,y:138},{x:240,y:145},{x:245,y:270}], 6)
+            ],
+            'n': [
+                [{x:110,y:140},{x:110,y:270}],
+                generateSpline([{x:110,y:180},{x:145,y:138},{x:205,y:142},{x:225,y:180},{x:225,y:270}], 7)
+            ],
+            // o kecil: LINGKARAN OVAL MULUS
+            'o': [
+                generateEllipseArcPoints(170, 202, 60, 65, -Math.PI / 2, -Math.PI / 2 - Math.PI * 2, 36)
+            ],
+            'p': [
+                [{x:110,y:135},{x:110,y:305}],
+                generateSpline([{x:110,y:175},{x:145,y:140},{x:195,y:145},{x:225,y:178},{x:225,y:220},{x:195,y:255},{x:145,y:260},{x:110,y:230}], 7)
+            ],
+            'q': [
+                generateSpline([{x:225,y:175},{x:190,y:140},{x:140,y:145},{x:110,y:178},{x:110,y:220},{x:140,y:255},{x:190,y:260},{x:225,y:230}], 7),
+                [{x:225,y:135},{x:225,y:305}]
+            ],
+            'r': [
+                [{x:120,y:140},{x:120,y:270}],
+                generateSpline([{x:120,y:195},{x:150,y:148},{x:195,y:142},{x:225,y:162}], 7)
+            ],
+            's': [
+                generateSpline([{x:215,y:165},{x:180,y:135},{x:140,y:150},{x:130,y:180},{x:160,y:205},{x:205,y:222},{x:215,y:248},{x:180,y:270},{x:135,y:265},{x:115,y:245}], 8)
+            ],
+            't': [
+                [{x:165,y:70},{x:165,y:250},{x:185,y:268}],
+                [{x:125,y:140},{x:210,y:140}]
+            ],
+            'u': [
+                generateSpline([{x:115,y:135},{x:115,y:230},{x:145,y:265},{x:195,y:265},{x:220,y:230},{x:220,y:135}], 7),
+                [{x:220,y:180},{x:220,y:268}]
+            ],
+            'v': [
+                [{x:110,y:138},{x:170,y:268},{x:230,y:138}]
+            ],
+            'w': [
+                [{x:95,y:138},{x:130,y:268},{x:170,y:180},{x:210,y:268},{x:245,y:138}]
+            ],
+            'x': [
+                [{x:115,y:140},{x:225,y:268}],
+                [{x:225,y:140},{x:115,y:268}]
+            ],
+            'y': [
+                [{x:115,y:138},{x:170,y:225}],
+                generateSpline([{x:225,y:138},{x:170,y:225},{x:140,y:275},{x:105,y:285}], 7)
+            ],
+            'z': [
+                [{x:115,y:140},{x:225,y:140},{x:115,y:268},{x:225,y:268}]
+            ]
+        };
+
+        const letterData = {};
+        for (const k in rawLetters) {
+            letterData[k] = { strokes: rawLetters[k] };
+        }
+
+        let currentMode = 'upper';
+        let currentLetter = 'A';
+        let strokeIndex = 0;
+        let segIndex = 0;
+        let isDragging = false;
+
+        let puckPos = { x: 0, y: 0 };
+        let puckAngle = 0;
+
+        function buildLetterButtons() {
+            letterListEl.innerHTML = '';
+            const list = currentMode === 'upper' 
+                ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+                : 'abcdefghijklmnopqrstuvwxyz'.split('');
+
+            list.forEach(ch => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-letter' + (ch === currentLetter ? ' active' : '');
+                btn.innerText = ch;
+                btn.id = 'btn-char-' + ch;
+                btn.onclick = () => selectLetter(ch);
+                letterListEl.appendChild(btn);
+            });
+
+            const activeBtn = document.getElementById('btn-char-' + currentLetter);
+            if (activeBtn) activeBtn.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btn-mode-upper').classList.toggle('active', mode === 'upper');
+            document.getElementById('btn-mode-lower').classList.toggle('active', mode === 'lower');
+            selectLetter(mode === 'upper' ? currentLetter.toUpperCase() : currentLetter.toLowerCase());
+        }
+
+        function navLetter(delta) {
+            const list = currentMode === 'upper' 
+                ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+                : 'abcdefghijklmnopqrstuvwxyz'.split('');
+            let idx = list.indexOf(currentLetter);
+            idx = (idx + delta + list.length) % list.length;
+            selectLetter(list[idx]);
+        }
+
+        function selectLetter(letter) {
+            currentLetter = letter;
+            buildLetterButtons();
+            resetLetter();
+        }
+
+        function projectPointToSegment(P, A, B) {
+            const ABx = B.x - A.x;
+            const ABy = B.y - A.y;
+            const ab2 = ABx * ABx + ABy * ABy;
+            if (ab2 === 0) return { point: { x: A.x, y: A.y }, t: 0, dist: Math.hypot(P.x - A.x, P.y - A.y) };
+
+            let t = ((P.x - A.x) * ABx + (P.y - A.y) * ABy) / ab2;
+            t = Math.max(0, Math.min(1, t));
+
+            const projX = A.x + t * ABx;
+            const projY = A.y + t * ABy;
+            const dist = Math.hypot(P.x - projX, P.y - projY);
+
+            return { point: { x: projX, y: projY }, t, dist };
+        }
+
+        function renderStrokesToCtx(targetCtx, width, color) {
+            const data = letterData[currentLetter];
+            targetCtx.save();
+            targetCtx.lineCap = 'round';
+            targetCtx.lineJoin = 'round';
+            targetCtx.lineWidth = width;
+            targetCtx.strokeStyle = color;
+
+            data.strokes.forEach(stroke => {
+                targetCtx.beginPath();
+                targetCtx.moveTo(stroke[0].x, stroke[0].y);
+                for (let i = 1; i < stroke.length; i++) {
+                    targetCtx.lineTo(stroke[i].x, stroke[i].y);
+                }
+                targetCtx.stroke();
+            });
+            targetCtx.restore();
+        }
+
+        function updateMask() {
+            ctxMask.clearRect(0, 0, 340, 340);
+            renderStrokesToCtx(ctxMask, railWidth, '#000000');
+        }
+
+        function drawBackground() {
+            ctxBg.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            updateMask();
+
+            renderStrokesToCtx(ctxBg, railWidth, '#e2e8f0');
+
+            ctxBg.save();
+            ctxBg.lineWidth = 3;
+            ctxBg.strokeStyle = '#94a3b8';
+            ctxBg.setLineDash([8, 10]);
+            ctxBg.lineCap = 'round';
+            ctxBg.lineJoin = 'round';
+
+            const data = letterData[currentLetter];
+            data.strokes.forEach(stroke => {
+                ctxBg.beginPath();
+                ctxBg.moveTo(stroke[0].x, stroke[0].y);
+                for (let i = 1; i < stroke.length; i++) {
+                    ctxBg.lineTo(stroke[i].x, stroke[i].y);
+                }
+                ctxBg.stroke();
+            });
+            ctxBg.restore();
+        }
+
+        function drawInkSegment(fromPt, toPt) {
+            ctxInk.save();
+            ctxInk.beginPath();
+            ctxInk.moveTo(fromPt.x, fromPt.y);
+            ctxInk.lineTo(toPt.x, toPt.y);
+            ctxInk.lineWidth = railWidth;
+            ctxInk.lineCap = 'round';
+            ctxInk.lineJoin = 'round';
+            ctxInk.strokeStyle = '#38bdf8';
+            ctxInk.stroke();
+
+            ctxInk.globalCompositeOperation = 'destination-in';
+            ctxInk.drawImage(maskCanvas, 0, 0);
+            ctxInk.restore();
+        }
+
+        function renderPuck() {
+            ctxPuck.clearRect(0, 0, puckCanvas.width, puckCanvas.height);
+            const data = letterData[currentLetter];
+            if (strokeIndex >= data.strokes.length) return;
+
+            const { x, y } = puckPos;
+
+            ctxPuck.save();
+            ctxPuck.translate(x, y);
+
+            ctxPuck.beginPath();
+            ctxPuck.arc(0, 0, puckRadius + 3, 0, Math.PI * 2);
+            ctxPuck.fillStyle = '#ffffff';
+            ctxPuck.shadowColor = 'rgba(0, 0, 0, 0.25)';
+            ctxPuck.shadowBlur = 8;
+            ctxPuck.fill();
+
+            ctxPuck.beginPath();
+            ctxPuck.arc(0, 0, puckRadius, 0, Math.PI * 2);
+            ctxPuck.fillStyle = isDragging ? '#15803d' : '#22c55e';
+            ctxPuck.fill();
+
+            ctxPuck.rotate(puckAngle);
+            ctxPuck.fillStyle = '#ffffff';
+            ctxPuck.beginPath();
+            ctxPuck.moveTo(8, 0);
+            ctxPuck.lineTo(-5, -7);
+            ctxPuck.lineTo(-2, 0);
+            ctxPuck.lineTo(-5, 7);
+            ctxPuck.closePath();
+            ctxPuck.fill();
+
+            ctxPuck.restore();
+        }
+
+        function updatePuckAngle() {
+            const stroke = letterData[currentLetter].strokes[strokeIndex];
+            if (!stroke) return;
+            const lookIdx = Math.min(segIndex + 2, stroke.length - 1);
+            const targetPt = stroke[lookIdx];
+            puckAngle = Math.atan2(targetPt.y - puckPos.y, targetPt.x - puckPos.x);
+        }
+
+        function getCoords(e) {
+            const rect = puckCanvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function onStart(e) {
+            e.preventDefault();
+            const data = letterData[currentLetter];
+            if (strokeIndex >= data.strokes.length) return;
+
+            const pos = getCoords(e);
+            const dist = Math.hypot(pos.x - puckPos.x, pos.y - puckPos.y);
+
+            if (dist <= puckRadius + 32) {
+                isDragging = true;
+                messageEl.innerText = "";
+            } else {
+                messageEl.innerText = "Pegang bulatan hijau di rel ya!";
+                messageEl.style.color = "#d97706";
+            }
+        }
+
+        function onMove(e) {
+            e.preventDefault();
+            if (!isDragging) return;
+
+            const pos = getCoords(e);
+            const data = letterData[currentLetter];
+            const stroke = data.strokes[strokeIndex];
+
+            const distFinger = Math.hypot(pos.x - puckPos.x, pos.y - puckPos.y);
+            if (distFinger > 75) {
+                isDragging = false;
+                renderPuck();
+                return;
+            }
+
+            let bestSeg = segIndex;
+            let bestDist = Infinity;
+            let bestPoint = null;
+
+            const lookaheadLimit = Math.min(segIndex + 6, stroke.length - 2);
+
+            for (let i = segIndex; i <= lookaheadLimit; i++) {
+                const A = stroke[i];
+                const B = stroke[i + 1];
+                const proj = projectPointToSegment(pos, A, B);
+
+                if (proj.dist < bestDist) {
+                    bestDist = proj.dist;
+                    bestSeg = i;
+                    bestPoint = proj.point;
+                }
+            }
+
+            if (bestDist < 60 && bestPoint) {
+                drawInkSegment(puckPos, bestPoint);
+                puckPos = bestPoint;
+                segIndex = bestSeg;
+
+                updatePuckAngle();
+                renderPuck();
+
+                const lastPt = stroke[stroke.length - 1];
+                const distToEnd = Math.hypot(puckPos.x - lastPt.x, puckPos.y - lastPt.y);
+
+                if (segIndex >= stroke.length - 4 && distToEnd < 28) {
+                    drawInkSegment(puckPos, lastPt);
+                    puckPos = { x: lastPt.x, y: lastPt.y };
+
+                    strokeIndex++;
+                    segIndex = 0;
+
+                    if (strokeIndex >= data.strokes.length) {
+                        messageEl.innerText = "Hore! Hebat sekali! 🎉";
+                        messageEl.style.color = "#059669";
+                        isDragging = false;
+                        ctxPuck.clearRect(0, 0, puckCanvas.width, puckCanvas.height);
+                    } else {
+                        messageEl.innerText = "Bagus! Lanjutkan garis berikutnya.";
+                        messageEl.style.color = "#0284c7";
+                        const nextStroke = data.strokes[strokeIndex];
+                        puckPos = { x: nextStroke[0].x, y: nextStroke[0].y };
+                        updatePuckAngle();
+                        renderPuck();
+                    }
+                }
+            }
+        }
+
+        function onEnd(e) {
+            e.preventDefault();
+            isDragging = false;
+            renderPuck();
+        }
+
+        function resetLetter() {
+            ctxInk.clearRect(0, 0, inkCanvas.width, inkCanvas.height);
+            strokeIndex = 0;
+            segIndex = 0;
+            isDragging = false;
+            messageEl.innerText = "";
+
+            const firstPt = letterData[currentLetter].strokes[0][0];
+            puckPos = { x: firstPt.x, y: firstPt.y };
+
+            drawBackground();
+            updatePuckAngle();
+            renderPuck();
+        }
+
+        puckCanvas.addEventListener('mousedown', onStart);
+        puckCanvas.addEventListener('mousemove', onMove);
+        puckCanvas.addEventListener('mouseup', onEnd);
+        puckCanvas.addEventListener('mouseleave', onEnd);
+
+        puckCanvas.addEventListener('touchstart', onStart, { passive: false });
+        puckCanvas.addEventListener('touchmove', onMove, { passive: false });
+        puckCanvas.addEventListener('touchend', onEnd);
+        puckCanvas.addEventListener('touchcancel', onEnd);
+
+        // Inisialisasi awal
+        buildLetterButtons();
+        selectLetter('A');
+    </script>
 </body>
 </html>
