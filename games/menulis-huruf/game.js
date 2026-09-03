@@ -318,21 +318,45 @@ function updateModeIndicator() {
   modeIndicator.textContent = caseLabel;
 }
 
-// --- Sampling --------------------------------------------------------------
+// --- Sampling (Catmull-Rom interpolation for smooth curves) ----------------
 function sampleStroke(points) {
   const out = [];
-  for (let i = 0; i < points.length - 1; i++) {
-    const [ax, ay] = points[i];
-    const [bx, by] = points[i + 1];
-    const dx = bx - ax;
-    const dy = by - ay;
+  if (points.length < 2) return out.map(() => ({ x: 0, y: 0 }));
+  if (points.length === 2) {
+    // just two points — straight line (Catmull-Rom degenerates, but still works)
+    const [ax, ay] = points[0];
+    const [bx, by] = points[1];
+    const dx = bx - ax, dy = by - ay;
     const len = Math.hypot(dx, dy);
     const n = Math.max(1, Math.floor(len / SAMPLE_STEP));
-    for (let j = 0; j < n; j++) {
-      out.push({ x: ax + (dx * j) / n, y: ay + (dy * j) / n });
+    for (let j = 0; j < n; j++) out.push({ x: ax + (dx * j) / n, y: ay + (dy * j) / n });
+    out.push({ x: bx, y: by });
+    return out;
+  }
+
+  // Catmull-Rom interpolation: smooth curve through the original control points
+  const cr = (p0, p1, p2, p3, t) => {
+    const t2 = t * t, t3 = t2 * t;
+    return {
+      x: 0.5 * (2*p1[0] + (-p0[0]+p2[0])*t + (2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2 + (-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),
+      y: 0.5 * (2*p1[1] + (-p0[1]+p2[1])*t + (2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2 + (-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3)
+    };
+  };
+
+  const n = points.length;
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(n - 1, i + 2)];
+    const segLen = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+    const steps = Math.max(1, Math.floor(segLen / SAMPLE_STEP));
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      out.push(cr(p0, p1, p2, p3, t));
     }
   }
-  out.push({ x: points[points.length - 1][0], y: points[points.length - 1][1] });
+  out.push({ x: points[n - 1][0], y: points[n - 1][1] });
   return out;
 }
 
@@ -423,9 +447,9 @@ function drawBalloonGlyph() {
   gctx.lineCap = 'round';
   gctx.lineJoin = 'round';
 
-  // soft translucent body hugging every stroke path
-  gctx.strokeStyle = 'rgba(255,255,255,0.35)';
-  gctx.lineWidth = tube * 0.85;
+  // soft translucent body — wide enough to contain arrows, circles & trace lines
+  gctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  gctx.lineWidth = Math.max(tube * 2.5, 60);
   for (const scr of screenStrokes) {
     if (!scr || scr.length === 0) continue;
     gctx.beginPath();
