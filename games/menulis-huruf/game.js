@@ -25,9 +25,10 @@ const END_SNAP = 32;       // puck this close to the stroke end -> stroke done
 const LOOKAHEAD_PX = 100;  // how far ahead of the puck the rail is scanned
 
 const INK = '#38bdf8';         // ink that fills the rail as the puck travels
-const RAIL_RIM = 'rgba(15,23,42,0.25)';
-const RAIL_CORE = '#ffffff';
-const RAIL_DASH = '#94a3b8';
+const RAIL_BG = '#e2e8f0';     // light gray rail background (matches sample)
+const RAIL_DASH = '#94a3b8';   // dashed center line
+const RAIL_DASH_W = 3;         // dash stroke width
+const RAIL_W = 44;             // rail width at scale 1 (matches sample)
 const PUCK = '#22c55e';
 const PUCK_ON = '#15803d';
 
@@ -225,7 +226,7 @@ function factor() {
 }
 
 function tubeW() {
-  return Math.max(18, TUBE_W * factor());
+  return Math.max(18, RAIL_W * factor());
 }
 
 function puckR() {
@@ -302,8 +303,8 @@ function clearInk() {
   ink.ctx.clearRect(0, 0, W, H);
 }
 
-// Draw the static "rail" look: soft rim, bright tube core, dashed center line.
-// Also (re)build the black tube mask used to clip the ink into the rails.
+// Draw the static "rail" look: light gray path with dashed center line.
+// Also (re)build the black rail mask used to clip the ink into the rails.
 function buildStatic() {
   const g = guide.ctx;
   const m = mask.ctx;
@@ -318,26 +319,21 @@ function buildStatic() {
   m.lineCap = 'round';
   m.lineJoin = 'round';
 
-  // rim / shadow ring around every rail
-  g.strokeStyle = RAIL_RIM;
-  g.lineWidth = w + 6 * s;
-  for (const scr of screenStrokes) { tracePath(g, scr); g.stroke(); }
-
-  // bright tube core
-  g.strokeStyle = RAIL_CORE;
+  // light gray rail (like sample's e2e8f0)
+  g.strokeStyle = RAIL_BG;
   g.lineWidth = w;
   for (const scr of screenStrokes) { tracePath(g, scr); g.stroke(); }
 
   // dashed center line that shows the exact path to follow
   g.strokeStyle = RAIL_DASH;
-  g.lineWidth = Math.max(2, 2.4 * s);
+  g.lineWidth = Math.max(2, RAIL_DASH_W * s);
   g.setLineDash([7 * s, 9 * s]);
   for (const scr of screenStrokes) { tracePath(g, scr); g.stroke(); }
   g.setLineDash([]);
 
-  // mask for ink clipping (slightly wider than the ink so edges stay crisp)
+  // mask for ink clipping
   m.strokeStyle = '#000';
-  m.lineWidth = w + 8 * s;
+  m.lineWidth = w + 6 * s;
   for (const scr of screenStrokes) { tracePath(m, scr); m.stroke(); }
 }
 
@@ -855,6 +851,21 @@ function drawPuck(now) {
 
 function drawScene(now) {
   ctx.clearRect(0, 0, W, H);
+
+  // white card background for the trace zone (like sample's container)
+  const z = zone;
+  ctx.save();
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = '#94a3b8';
+  roundRectPath(ctx, z.x - 6, z.y - 6, z.w + 12, z.h + 12, 28);
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(0,0,0,0.08)';
+  ctx.shadowBlur = 16;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.stroke();
+  ctx.restore();
+
   if (guide) ctx.drawImage(guide.canvas, 0, 0, W, H);
   if (ink) ctx.drawImage(ink.canvas, 0, 0, W, H);
   drawPuck(now);

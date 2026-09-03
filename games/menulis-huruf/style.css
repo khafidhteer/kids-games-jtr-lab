@@ -11,8 +11,8 @@ html, body {
   height: 100%;
   overflow: hidden;
   font-family: 'Fredoka One', 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
+  background: #f8fafc;
+  color: #0f172a;
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
@@ -47,9 +47,9 @@ html, body {
   height: 48px;
   border: none;
   border-radius: 50%;
-  background: rgba(0,0,0,0.35);
-  backdrop-filter: blur(6px);
-  color: #fff;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  color: #475569;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -62,7 +62,7 @@ html, body {
 .game-header__btn:hover,
 .game-header__btn:active {
   transform: scale(1.1);
-  background: rgba(0,0,0,0.55);
+  background: #f1f5f9;
 }
 
 .game-header__btn svg {
@@ -89,10 +89,10 @@ html, body {
   font-weight: 600;
   text-align: center;
   pointer-events: none;
-  background: rgba(0,0,0,0.25);
+  background: rgba(0,0,0,0.04);
   padding: 3px 12px;
   border-radius: 12px;
-  backdrop-filter: blur(4px);
+  color: #64748b;
 }
 
 /* Bottom nav */
@@ -114,10 +114,10 @@ html, body {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  border: 3px solid rgba(255,255,255,0.3);
-  background: rgba(0,0,0,0.25);
-  backdrop-filter: blur(6px);
-  color: #fff;
+  border: 2px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  color: #334155;
   font-size: 2.2rem;
   font-weight: 700;
   display: flex;
@@ -132,7 +132,7 @@ html, body {
 
 .trace-nav__arrow:active {
   transform: scale(0.9);
-  background: rgba(0,0,0,0.45);
+  background: #f1f5f9;
 }
 
 /* Math gate */
