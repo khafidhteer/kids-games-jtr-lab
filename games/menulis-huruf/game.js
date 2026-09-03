@@ -1,5 +1,6 @@
 import { LETTERS } from './letters.js';
 import { PRAISE, LETTER_NAMES } from './praise.js';
+import { LETTER_WORDS } from './words.js';
 import { AudioSynth, unlockAudio } from '../../js/audio.js';
 import { speak } from '../../js/speech.js';
 import { initSafeguards } from '../../js/safeguard.js';
@@ -7,6 +8,7 @@ import { initSafeguards } from '../../js/safeguard.js';
 initSafeguards();
 
 const STORAGE_KEY = 'menulis_huruf_settings';
+const PROGRESS_KEY = 'menulis_huruf_progress';
 
 // --- Geometry / layout constants -------------------------------------------
 const HEADER_H = 64;
@@ -15,7 +17,10 @@ const SIDE = 24;
 const TOLERANCE_PX = 42;
 const PALM_SIZE = 60;
 const SAMPLE_STEP = 4;
-const ARROW_STEP = 150;
+const TUBE_W = 34;        // trace-brush width (CSS px per unit of scale factor)
+const BREAK_TOL_PX = TOLERANCE_PX * 2.6; // straying further than this erases the stroke (gentle)
+const STRAY_LIMIT = 10;   // consecutive off-path moves before erasing
+const TICK_STEP_PX = 90;  // tracing blip cadence (screen px of progress)
 
 const BACK_URL = '../../index.html';
 
@@ -32,6 +37,7 @@ const fullscreenBtn = document.getElementById('fullscreen-btn');
 const settingsBtn = document.getElementById('settings-btn');
 const helpBtn = document.getElementById('help-btn');
 const backBtn = document.getElementById('back-btn');
+const stickerBtn = document.getElementById('sticker-btn');
 
 const mathModal = document.getElementById('math-modal');
 const mathQuestion = document.getElementById('math-question');
@@ -43,6 +49,18 @@ const settingsPanel = document.getElementById('settings-panel');
 const settingsApply = document.getElementById('settings-apply');
 const settingsCancel = document.getElementById('settings-cancel');
 const picker = document.getElementById('letter-picker');
+
+const stickerModal = document.getElementById('sticker-modal');
+const stickerTitle = document.getElementById('sticker-title');
+const stickerCount = document.getElementById('sticker-count');
+const stickerGrid = document.getElementById('sticker-grid');
+const stickerReset = document.getElementById('sticker-reset');
+const stickerClose = document.getElementById('sticker-close');
+
+const rewardCard = document.getElementById('reward-card');
+const rewardLetter = document.getElementById('reward-letter');
+const rewardEmoji = document.getElementById('reward-emoji');
+const rewardWord = document.getElementById('reward-word');
 
 const helpModal = document.getElementById('help-modal');
 const helpClose = document.getElementById('help-close');
@@ -63,24 +81,42 @@ let audioReady = false;
 let soundOn = true;
 let lang = 'id';
 let caseMode = 'both';
+let demoOn = true;
 
 let sequence = [];
 let letterIndex = 0;
 let currentChar = 'A';
 
 let strokes = [];        // sampled strokes: array of arrays of {x,y} (unit space)
+let screenStrokes = [];  // same strokes projected to screen space (cached)
 let strokeComplete = []; // per stroke
 let head = [];           // head sample index per stroke
 let currentStroke = 0;
 let celebrating = false;
 let celebrationDone = false;
 
+// Static "balloon letter" glyph layer + dashed centre guide lines
+let guideCanvas = null;
+let gctx = null;
+
+// Confetti + sparkle particles
+let particles = [];
+let sparkles = [];
+
+// Tracing stray / audio throttling
+let activeOffCount = 0;
+let tickAcc = 0;
+
+// Auto-write demo ("watch me write") state
+let demo = { active: false, idx: 0, t: 0, pause: 0, tint: [] };
+let demoTimerId = null;
+
+// Sticker book state (persisted across sessions)
+let completedLetters = [];
+
 const pointers = new Map(); // pointerId -> { x, y, w, h, down }
 let activeId = null;
 let lastTap = 0;
-
-// Confetti particles
-let particles = [];
 
 // --- Settings --------------------------------------------------------------
 function getSettings() {
@@ -88,13 +124,63 @@ function getSettings() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch (e) {}
-  return { case: 'both', sound: true, lang: 'id' };
+  return { case: 'both', sound: true, lang: 'id', demo: true };
 }
 
 function saveSettings() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ case: caseMode, sound: soundOn, lang }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ case: caseMode, sound: soundOn, lang, demo: demoOn }));
 }
 
+// --- Sticker / progress ----------------------------------------------------
+function getProgress() {
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+}
+
+function saveProgress(list) {
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify(list));
+}
+
+function markLetterComplete(ch) {
+  if (!completedLetters.includes(ch)) {
+    completedLetters.push(ch);
+    saveProgress(completedLetters);
+  }
+}
+
+function renderStickerGrid() {
+  stickerGrid.innerHTML = '';
+  for (const ch of sequence) {
+    const el = document.createElement('div');
+    el.className = 'sticker-tile' + (completedLetters.includes(ch) ? ' done' : '');
+    el.textContent = ch;
+    stickerGrid.appendChild(el);
+  }
+}
+
+function updateStickerView() {
+  const total = sequence.length;
+  const n = sequence.filter((ch) => completedLetters.includes(ch)).length;
+  stickerCount.textContent = `⭐ ${n} / ${total}`;
+  renderStickerGrid();
+}
+
+function showStickerBook() {
+  stickerTitle.textContent = lang === 'id' ? 'Stiker Saya' : 'My Stickers';
+  stickerReset.textContent = lang === 'id' ? 'Hapus' : 'Reset';
+  stickerClose.textContent = lang === 'id' ? 'Tutup' : 'Close';
+  updateStickerView();
+  stickerModal.classList.add('visible');
+}
+
+function hideStickerBook() {
+  stickerModal.classList.remove('visible');
+}
+
+// --- Sequence --------------------------------------------------------------
 function buildSequence() {
   const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const lower = 'abcdefghijklmnopqrstuvwxyz'.split('');
@@ -122,9 +208,109 @@ function resetLetter() {
   head = raw.map(() => 0);
   currentStroke = 0;
   celebrationDone = false;
+  sparkles = [];
+  activeOffCount = 0;
+  tickAcc = 0;
   letterLabel.textContent = currentChar;
   updateModeIndicator();
   computeLayout();
+  refreshScreenStrokes();
+  buildGuide();
+  scheduleDemo();
+}
+
+// --- Auto-write demo -------------------------------------------------------
+const DEMO_START_DELAY = 800; // ms before the nib starts after a letter loads
+const DEMO_GAP = 0.35;        // s pause between strokes
+const DEMO_SPEED_UPS = 380;   // unit-space speed of the moving nib
+
+function cancelDemo() {
+  clearTimeout(demoTimerId);
+  demoTimerId = null;
+  demo.active = false;
+}
+
+function scheduleDemo() {
+  cancelDemo();
+  demo.idx = 0;
+  demo.t = 0;
+  demo.pause = 0;
+  demo.tint = strokes.map(() => 0);
+  if (!demoOn || celebrating) return;
+  demoTimerId = setTimeout(() => {
+    demoTimerId = null;
+    if (!demoOn || celebrating) return;
+    demo.active = true;
+    demo.idx = 0;
+    demo.t = 0;
+    demo.pause = 0;
+  }, DEMO_START_DELAY);
+}
+
+function strokeUnitLen(i) {
+  const st = strokes[i];
+  if (!st) return 0;
+  let len = 0;
+  for (let k = 1; k < st.length; k++) {
+    len += Math.hypot(st[k].x - st[k - 1].x, st[k].y - st[k - 1].y);
+  }
+  return len;
+}
+
+function updateDemo(dt) {
+  if (!demo.active) return;
+  if (celebrating) return;
+  if (demo.pause > 0) {
+    demo.pause -= dt;
+    if (demo.pause <= 0) {
+      demo.idx++;
+      demo.t = 0;
+    }
+    return;
+  }
+  const idx = demo.idx;
+  if (idx >= strokes.length) {
+    demo.active = false;
+    return;
+  }
+  const st = strokes[idx];
+  if (!st || st.length < 2) {
+    demo.idx++;
+    return;
+  }
+  const dur = Math.min(2.4, Math.max(0.6, strokeUnitLen(idx) / DEMO_SPEED_UPS));
+  demo.t += dt;
+  const k = Math.min(1, demo.t / dur);
+  demo.tint[idx] = Math.max(demo.tint[idx] || 0, k);
+  if (k >= 1) {
+    demo.tint[idx] = 1;
+    if (idx + 1 >= strokes.length) {
+      demo.active = false;
+    } else {
+      demo.pause = DEMO_GAP;
+    }
+  }
+}
+
+function demoNibPosition() {
+  if (!demo.active || demo.idx >= strokes.length) return null;
+  if (demo.pause > 0) {
+    // holding at the end of the stroke that just finished (idx not advanced yet)
+    const cur = screenStrokes[demo.idx];
+    if (!cur || cur.length === 0) return null;
+    return { x: cur[cur.length - 1].x, y: cur[cur.length - 1].y };
+  }
+  const st = screenStrokes[demo.idx];
+  if (!st || st.length < 2) return null;
+  const k = Math.min(1, demo.t / Math.min(2.4, Math.max(0.6, strokeUnitLen(demo.idx) / DEMO_SPEED_UPS)));
+  const f = Math.max(0, Math.min(st.length - 1, k * (st.length - 1)));
+  const i0 = Math.floor(f);
+  const i1 = Math.min(st.length - 1, i0 + 1);
+  const t = f - i0;
+  return {
+    x: st[i0].x + (st[i1].x - st[i0].x) * t,
+    y: st[i0].y + (st[i1].y - st[i0].y) * t
+  };
 }
 
 function updateModeIndicator() {
@@ -151,6 +337,11 @@ function sampleStroke(points) {
 }
 
 // --- Layout ----------------------------------------------------------------
+function metric() {
+  const s = Math.min(1.6, scale);
+  return { s, tube: TUBE_W * s };
+}
+
 function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 2);
   W = window.innerWidth;
@@ -160,8 +351,17 @@ function resize() {
   canvas.style.width = W + 'px';
   canvas.style.height = H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (!guideCanvas) {
+    guideCanvas = document.createElement('canvas');
+    gctx = guideCanvas.getContext('2d');
+  }
+  guideCanvas.width = W * dpr;
+  guideCanvas.height = H * dpr;
+  gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   zone = { x: SIDE, y: HEADER_H + 6, w: W - SIDE * 2, h: H - HEADER_H - BOTTOM_BAND - 12 };
   computeLayout();
+  refreshScreenStrokes();
+  buildGuide();
 }
 
 function letterBounds() {
@@ -193,6 +393,57 @@ function toScreen(ux, uy) {
 
 function toUnit(sx, sy) {
   return { x: (sx - offsetX) / scale, y: (sy - offsetY) / scale };
+}
+
+function refreshScreenStrokes() {
+  screenStrokes = strokes.map((pts) => pts.map((p) => toScreen(p.x, p.y)));
+}
+
+function strokePoly(pen, scr) {
+  pen.beginPath();
+  pen.moveTo(scr[0].x, scr[0].y);
+  for (let i = 1; i < scr.length; i++) pen.lineTo(scr[i].x, scr[i].y);
+  pen.stroke();
+}
+
+// Build the static ghost "balloon letter" glyph layer.
+function buildGuide() {
+  if (!guideCanvas) return;
+  gctx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+  gctx.lineCap = 'round';
+  gctx.lineJoin = 'round';
+  drawBalloonGlyph();
+}
+
+// Ghost "balloon letter" silhouette built straight from the trace strokes, so
+// the visible letter IS the traceable path — arrows and dashed guides always
+// stay inside the soft translucent body the child snaps their strokes over.
+function drawBalloonGlyph() {
+  const { s, tube } = metric();
+  gctx.lineCap = 'round';
+  gctx.lineJoin = 'round';
+
+  // soft translucent body hugging every stroke path
+  gctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  gctx.lineWidth = tube * 0.85;
+  for (const scr of screenStrokes) {
+    if (!scr || scr.length === 0) continue;
+    gctx.beginPath();
+    gctx.moveTo(scr[0].x, scr[0].y);
+    for (let k = 1; k < scr.length; k++) gctx.lineTo(scr[k].x, scr[k].y);
+    gctx.stroke();
+  }
+
+  // crisp light outline hugging the same paths
+  gctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  gctx.lineWidth = 3 * s;
+  for (const scr of screenStrokes) {
+    if (!scr || scr.length === 0) continue;
+    gctx.beginPath();
+    gctx.moveTo(scr[0].x, scr[0].y);
+    for (let k = 1; k < scr.length; k++) gctx.lineTo(scr[k].x, scr[k].y);
+    gctx.stroke();
+  }
 }
 
 // --- Palm rejection input --------------------------------------------------
@@ -235,6 +486,7 @@ function recomputeActive() {
 
 function onPointerDown(e) {
   if (celebrating) return;
+  cancelDemo();
   if (!audioReady) {
     unlockAudio();
     audioReady = true;
@@ -269,6 +521,7 @@ function onPointerUp(e) {
   pointers.delete(e.pointerId);
   if (activeId === e.pointerId) {
     activeId = null;
+    activeOffCount = 0;
     recomputeActive();
   }
 }
@@ -283,10 +536,30 @@ function trace(sx, sy) {
   const u = toUnit(sx, sy);
   const tol = TOLERANCE_PX / scale;
   const tol2 = tol * tol;
-  const st = strokes[currentStroke];
-  if (!st) return;
+  const idx = currentStroke;
+  const st = strokes[idx];
+  if (!st || !screenStrokes[idx]) return;
 
-  const h = head[currentStroke];
+  // Boundary enforcement: if the in-progress stroke has lost the line, erase it.
+  if (head[idx] > 0) {
+    const brk = BREAK_TOL_PX / scale;
+    const brk2 = brk * brk;
+    let d2 = Infinity;
+    for (let k = 0; k < st.length; k++) {
+      const dx = st[k].x - u.x;
+      const dy = st[k].y - u.y;
+      const dd = dx * dx + dy * dy;
+      if (dd < d2) d2 = dd;
+      if (d2 <= brk2) break;
+    }
+    if (d2 > brk2) {
+      if (++activeOffCount >= STRAY_LIMIT) resetCurrentStroke();
+      return;
+    }
+    activeOffCount = 0;
+  }
+
+  const h = head[idx];
   let j = Math.max(0, h - 2);
   while (j < st.length) {
     const dx = st[j].x - u.x;
@@ -296,23 +569,67 @@ function trace(sx, sy) {
   }
   if (j <= h) return; // no forward progress (finger not near the head)
 
-  head[currentStroke] = j;
+  let coveredPx = 0;
+  for (let k = h; k < j - 1; k++) {
+    coveredPx += Math.hypot((st[k + 1].x - st[k].x) * scale, (st[k + 1].y - st[k].y) * scale);
+  }
+
+  head[idx] = j;
+  const tail = screenStrokes[idx][Math.min(j, screenStrokes[idx].length - 1)];
+  activeOffCount = 0;
+
   if (j >= st.length - 1) {
-    strokeComplete[currentStroke] = true;
+    strokeComplete[idx] = true;
+    tickAcc = 0;
     if (soundOn) AudioSynth.ding();
+    spawnSparkles(tail.x, tail.y, 10);
     currentStroke++;
     if (currentStroke >= strokes.length) {
       onLetterComplete();
     } else {
       head[currentStroke] = 0;
+      activeOffCount = 0;
     }
+  } else {
+    tickAcc += coveredPx;
+    if (soundOn) {
+      while (tickAcc >= TICK_STEP_PX) {
+        tickAcc -= TICK_STEP_PX;
+        AudioSynth.sparkle();
+      }
+    }
+    if (coveredPx > 8) spawnSparkles(tail.x, tail.y, Math.min(4, 1 + Math.floor(coveredPx / 14)));
   }
+}
+
+function resetCurrentStroke() {
+  if (celebrating) return;
+  head[currentStroke] = 0;
+  activeOffCount = 0;
+  tickAcc = 0;
+  if (soundOn) AudioSynth.boing();
+}
+
+// --- Reward / celebration --------------------------------------------------
+function showRewardCard() {
+  const key = currentChar.toUpperCase();
+  const entry = (LETTER_WORDS[key] && LETTER_WORDS[key][lang]) || null;
+  rewardLetter.textContent = currentChar;
+  rewardEmoji.textContent = entry ? entry.emoji : '⭐';
+  rewardWord.textContent = entry ? entry.word : '';
+  rewardCard.classList.add('visible');
+}
+
+function hideRewardCard() {
+  rewardCard.classList.remove('visible');
 }
 
 function onLetterComplete() {
   if (celebrating || celebrationDone) return;
   celebrating = true;
   celebrationDone = true;
+  markLetterComplete(currentChar);
+  updateStickerView();
   spawnConfetti();
   if (soundOn) AudioSynth.chime();
 
@@ -320,62 +637,174 @@ function onLetterComplete() {
   speak(praise, lang);
   setTimeout(() => {
     speak(LETTER_NAMES[lang][currentChar.toUpperCase()], lang);
-  }, 1200);
+  }, 900);
 
+  const key = currentChar.toUpperCase();
+  const entry = LETTER_WORDS[key] && LETTER_WORDS[key][lang];
+  if (entry) {
+    setTimeout(() => speak(entry.word, lang), 2100);
+  }
+
+  setTimeout(() => showRewardCard(), 450);
   setTimeout(() => {
+    hideRewardCard();
     celebrating = false;
     setLetter(letterIndex + 1);
-  }, 3000);
+  }, 4800);
 }
 
 // --- Rendering -------------------------------------------------------------
-function drawPath(points, screenPoints) {
+function fillArrow(x, y, ang, size, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.moveTo(screenPoints[0].x, screenPoints[0].y);
-  for (let i = 1; i < screenPoints.length; i++) {
-    ctx.lineTo(screenPoints[i].x, screenPoints[i].y);
-  }
-  ctx.stroke();
+  ctx.moveTo(size * 0.7, 0);
+  ctx.lineTo(-size * 0.45, size * 0.55);
+  ctx.lineTo(-size * 0.45, -size * 0.55);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
-function drawArrowheads(points, screenPoints, color) {
-  ctx.fillStyle = color;
+const DOT_LEN_UNIT = 55; // strokes shorter than this are treated as dots — no arrow
+
+function dotStroke(i) {
+  return strokeUnitLen(i) < DOT_LEN_UNIT;
+}
+
+// First sample of stroke i that sits clear of its numbered start circle.
+function arrowStartSample(i, r) {
+  const scr = screenStrokes[i];
+  if (!scr || scr.length < 2) return 0;
+  const target = r + 5;
   let dist = 0;
-  let last = 0;
-  for (let i = 1; i < points.length; i++) {
-    dist += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
-    if (dist - last >= ARROW_STEP) {
-      last = dist;
-      const s = screenPoints[i];
-      const t = screenPoints[Math.max(0, i - 2)];
-      const ang = Math.atan2(s.y - t.y, s.x - t.x);
-      const size = 14 * Math.min(1.6, scale / 12);
-      ctx.save();
-      ctx.translate(s.x, s.y);
-      ctx.rotate(ang);
-      ctx.beginPath();
-      ctx.moveTo(size * 0.6, 0);
-      ctx.lineTo(-size * 0.4, size * 0.5);
-      ctx.lineTo(-size * 0.4, -size * 0.5);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
+  for (let k = 1; k < scr.length; k++) {
+    dist += Math.hypot(scr[k].x - scr[k - 1].x, scr[k].y - scr[k - 1].y);
+    if (dist >= target) return k;
+  }
+  return 0;
+}
+
+// One clean directional arrow from the start circle to the stroke's end.
+function drawStrokeArrow(i, from, color, w, head) {
+  const scr = screenStrokes[i];
+  if (!scr || scr.length < 3) return;
+  if (dotStroke(i)) return;
+  if (from >= scr.length - 2) return;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = w;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(scr[from].x, scr[from].y);
+  for (let k = from + 1; k < scr.length; k++) ctx.lineTo(scr[k].x, scr[k].y);
+  ctx.stroke();
+  ctx.restore();
+  const e0 = scr[scr.length - 1];
+  const e1 = scr[Math.max(0, scr.length - 3)];
+  fillArrow(e0.x, e0.y, Math.atan2(e0.y - e1.y, e0.x - e1.x), head, color);
+}
+
+// White numbered start circles; overlapping circles are pushed apart so the
+// numbers always stay legible (handwriter-style).
+function drawNumberCircles(now) {
+  const { s } = metric();
+  const r = 17 * s;
+  const pts = screenStrokes.map((scr) => ({ x: scr[0].x, y: scr[0].y }));
+  const minSep = r * 2 + 6;
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      const dx = pts[j].x - pts[i].x;
+      const dy = pts[j].y - pts[i].y;
+      const d = Math.hypot(dx, dy);
+      if (d < minSep) {
+        if (d < 0.5) {
+          pts[j].x = pts[i].x + minSep;
+        } else {
+          const k = minSep / d;
+          pts[j].x = pts[i].x + dx * k;
+          pts[j].y = pts[i].y + dy * k;
+        }
+      }
     }
   }
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i < strokes.length; i++) {
+    const done = strokeComplete[i];
+    const isCurrent = i === currentStroke;
+    const pulse = !done && isCurrent && !demo.active;
+    let ring = '#f97316'; // pending orange
+    if (done) ring = '#22c55e';
+    else if (isCurrent && !demo.active) ring = '#ffb300';
+    const rr = pulse ? r * (1 + 0.12 * Math.sin(now / 240)) : r;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.25)';
+    ctx.shadowBlur = 4;
+    ctx.beginPath();
+    ctx.arc(pts[i].x, pts[i].y, rr, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.restore();
+
+    ctx.lineWidth = Math.max(2, 3 * s);
+    ctx.strokeStyle = ring;
+    ctx.beginPath();
+    ctx.arc(pts[i].x, pts[i].y, rr, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = ring;
+    ctx.font = `bold ${Math.round(rr * 1.1)}px "Fredoka One", sans-serif`;
+    ctx.fillText(String(i + 1), pts[i].x, pts[i].y + rr * 0.04);
+  }
 }
 
-function roundRectPath(x, y, w, h, r) {
-  ctx.beginPath();
-  if (typeof ctx.roundRect === 'function') {
-    ctx.roundRect(x, y, w, h, r);
-  } else {
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
+// Soft tint left behind by the auto-write demo on still-pending strokes.
+function drawDemoTint() {
+  if (!demo.tint || demo.tint.length === 0) return;
+  const { s, tube } = metric();
+  const fillW = Math.max(4, tube - 4 * s);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(133,92,222,0.4)';
+  ctx.lineWidth = fillW;
+  for (let i = 0; i < strokes.length; i++) {
+    if (strokeComplete[i]) continue;
+    const p = demo.tint[i] || 0;
+    if (p <= 0) continue;
+    const scr = screenStrokes[i];
+    const to = Math.max(1, Math.floor(p * (scr.length - 1)));
+    if (to >= scr.length) continue;
+    ctx.beginPath();
+    ctx.moveTo(scr[0].x, scr[0].y);
+    for (let k = 1; k <= to; k++) ctx.lineTo(scr[k].x, scr[k].y);
+    ctx.stroke();
   }
+}
+
+function drawDemoNib() {
+  if (!demo.active) return;
+  const pos = demoNibPosition();
+  if (!pos) return;
+  const { s } = metric();
+  const r = 12 * s;
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,112,67,0.85)';
+  ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#ff7043';
+  ctx.fill();
+  ctx.restore();
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, r * 0.4, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
 }
 
 function drawLetter() {
@@ -385,74 +814,110 @@ function drawLetter() {
   ctx.fillStyle = 'rgba(255,255,255,0.07)';
   ctx.strokeStyle = 'rgba(255,255,255,0.08)';
   ctx.lineWidth = 2;
-  roundRectPath(zone.x, zone.y, zone.w, zone.h, 24);
+  ctx.beginPath();
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(zone.x, zone.y, zone.w, zone.h, 24);
+  } else {
+    const { x, y, w, h } = zone;
+    const r = 24;
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
   ctx.fill();
   ctx.stroke();
 
+  // ghost balloon-letter glyph layer (static)
+  ctx.drawImage(guideCanvas, 0, 0, W, H);
+
+  const { s, tube } = metric();
+  const fillW = Math.max(4, tube - 4 * s);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  drawDemoTint();
+
+  // completed strokes — filled green
   for (let i = 0; i < strokes.length; i++) {
-    const pts = strokes[i];
-    const scr = pts.map((p) => toScreen(p.x, p.y));
-    const done = strokeComplete[i];
-    const isCurrent = i === currentStroke;
-
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    // dim background path
-    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
-    ctx.lineWidth = 12 * Math.min(1.6, scale / 10);
-    drawPath(pts, scr);
-
-    // bright traced path
-    if (done) {
-      ctx.strokeStyle = '#4ade80';
-      ctx.lineWidth = 12 * Math.min(1.6, scale / 10);
-      drawPath(pts, scr);
-    } else if (isCurrent && head[i] > 0) {
-      const traced = scr.slice(0, head[i] + 1);
-      ctx.strokeStyle = '#ffd93d';
-      ctx.lineWidth = 12 * Math.min(1.6, scale / 10);
-      ctx.beginPath();
-      ctx.moveTo(traced[0].x, traced[0].y);
-      for (let k = 1; k < traced.length; k++) ctx.lineTo(traced[k].x, traced[k].y);
-      ctx.stroke();
-    }
-
-    // direction arrows on the not-yet-done portion
-    if (!done) {
-      drawArrowheads(pts, scr, 'rgba(255,255,255,0.35)');
-    }
+    if (!strokeComplete[i]) continue;
+    ctx.strokeStyle = '#4ade80';
+    ctx.lineWidth = fillW;
+    strokePoly(ctx, screenStrokes[i]);
   }
 
-  drawStartDots();
+  // active stroke — glowing amber trail up to the head
+  const ci = currentStroke;
+  if (!strokeComplete[ci] && head[ci] > 0) {
+    const scr = screenStrokes[ci];
+    const traced = scr.slice(0, head[ci] + 1);
+    ctx.save();
+    ctx.shadowColor = 'rgba(255,179,0,0.85)';
+    ctx.shadowBlur = 14;
+    ctx.strokeStyle = '#ffb300';
+    ctx.lineWidth = fillW;
+    ctx.beginPath();
+    ctx.moveTo(traced[0].x, traced[0].y);
+    for (let k = 1; k < traced.length; k++) ctx.lineTo(traced[k].x, traced[k].y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // one clean directional arrow per unfinished stroke
+  const rNum = 17 * s;
+  for (let i = 0; i < strokes.length; i++) {
+    if (strokeComplete[i]) continue;
+    const started = i === ci && head[i] > 0;
+    let from = started ? head[i] : arrowStartSample(i, rNum);
+    if (started && from < head[i]) from = head[i];
+    if (dotStroke(i)) continue;
+    if (demo.active && demo.idx === i) continue; // nib is showing this stroke right now
+    const isActive = i === ci && !demo.active;
+    drawStrokeArrow(i, from, isActive ? 'rgba(255,140,0,0.9)' : 'rgba(249,115,22,0.8)', isActive ? 7 * s : 6 * s, 15 * s);
+  }
+
+  drawNumberCircles(performance.now());
+  drawDemoNib();
 }
 
-function drawStartDots() {
-  for (let i = 0; i < strokes.length; i++) {
-    const start = strokes[i][0];
-    const s = toScreen(start.x, start.y);
-    const done = strokeComplete[i];
-    const isCurrent = i === currentStroke;
-    const r = 16 * Math.min(1.6, scale / 10);
-
-    if (done) {
-      ctx.fillStyle = '#4ade80';
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (isCurrent) {
-      const pulse = 1 + 0.3 * Math.sin(performance.now() / 250);
-      ctx.fillStyle = '#ffd93d';
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, r * pulse, 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.4)';
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, r * 0.8, 0, Math.PI * 2);
-      ctx.fill();
-    }
+// --- Sparkles --------------------------------------------------------------
+function spawnSparkles(x, y, n) {
+  const colors = ['#ffffff', '#fff3bf', '#ffe58a', '#ffd93d'];
+  for (let i = 0; i < n; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const spd = 20 + Math.random() * 70;
+    sparkles.push({
+      x: x + (Math.random() - 0.5) * 8,
+      y: y + (Math.random() - 0.5) * 8,
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd - 20,
+      r: 1.5 + Math.random() * 2.6,
+      life: 1,
+      color: colors[Math.floor(Math.random() * colors.length)]
+    });
   }
+}
+
+function updateSparkles(dt) {
+  for (const p of sparkles) {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt * 2.6;
+  }
+  sparkles = sparkles.filter((p) => p.life > 0);
+}
+
+function drawSparkles() {
+  for (const p of sparkles) {
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 }
 
 // --- Confetti --------------------------------------------------------------
@@ -510,8 +975,11 @@ function frame(now) {
   const dt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
   if (particles.length > 0) updateConfetti(dt);
+  if (sparkles.length > 0) updateSparkles(dt);
+  if (demo.active) updateDemo(dt);
   drawLetter();
   drawConfetti();
+  drawSparkles();
   requestAnimationFrame(frame);
 }
 
@@ -574,6 +1042,12 @@ backBtn.addEventListener('pointerdown', (e) => {
   showMathGate();
 });
 
+stickerBtn.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  pendingAction = 'sticker';
+  showMathGate();
+});
+
 // --- Math gate -------------------------------------------------------------
 function showMathGate() {
   const a = Math.floor(Math.random() * 8) + 1;
@@ -596,6 +1070,8 @@ function resolveAction() {
     window.location.href = BACK_URL;
   } else if (pendingAction === 'settings') {
     showSettings();
+  } else if (pendingAction === 'sticker') {
+    showStickerBook();
   }
   pendingAction = null;
 }
@@ -632,6 +1108,7 @@ function showSettings() {
   const s = getSettings();
   document.querySelector(`input[name="case"][value="${s.case}"]`).checked = true;
   document.querySelector(`input[name="lang"][value="${s.lang}"]`).checked = true;
+  document.getElementById('settings-demo').checked = demoOn !== false;
   renderPicker(s.case);
   settingsPanel.classList.add('visible');
 }
@@ -662,6 +1139,7 @@ settingsApply.addEventListener('pointerdown', (e) => {
   caseMode = document.querySelector('input[name="case"]:checked').value;
   lang = document.querySelector('input[name="lang"]:checked').value;
   soundOn = document.getElementById('settings-sound').checked;
+  demoOn = document.getElementById('settings-demo').checked;
   soundToggle.querySelector('.game-header__icon').textContent = soundOn ? '🔊' : '🔇';
   saveSettings();
   const prevChar = currentChar;
@@ -673,12 +1151,26 @@ settingsApply.addEventListener('pointerdown', (e) => {
   } else {
     setLetter(0);
   }
+  updateStickerView();
   hideSettings();
 });
 
 settingsCancel.addEventListener('pointerdown', (e) => {
   e.stopPropagation();
   hideSettings();
+});
+
+// --- Sticker book ----------------------------------------------------------
+stickerClose.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  hideStickerBook();
+});
+
+stickerReset.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  completedLetters = [];
+  saveProgress(completedLetters);
+  updateStickerView();
 });
 
 helpClose.addEventListener('pointerdown', (e) => {
@@ -690,15 +1182,17 @@ helpClose.addEventListener('pointerdown', (e) => {
 const HELP_TEXT = {
   id: [
     ['👆', 'Telusuri huruf dengan jari telunjuk'],
-    ['🎯', 'Ikuti titik dan panah untuk setiap guratan'],
+    ['🔢', 'Mulai dari angka 1, lalu ikuti angkanya berurutan'],
+    ['➡️', 'Seret mengikuti garis putus-putus searah panah'],
     ['🖐️', 'Sisi tangan tidak masalah — hanya jari yang diproses'],
-    ['🎉', 'Dapatkan pujian setelah menyelesaikan huruf!']
+    ['🎁', 'Selesaikan huruf untuk membuka kejutan!']
   ],
   en: [
     ['👆', 'Trace the letter with your index finger'],
-    ['🎯', 'Follow the dots and arrows for each stroke'],
+    ['🔢', 'Start at number 1, then follow the numbers in order'],
+    ['➡️', 'Drag along the dashed line in the direction of the arrow'],
     ['🖐️', 'Resting hands are ignored — only your finger counts'],
-    ['🎉', 'Get praised when you finish a letter!']
+    ['🎁', 'Finish a letter to unlock a surprise!']
   ]
 };
 
@@ -724,11 +1218,20 @@ function init() {
   caseMode = s.case || 'both';
   soundOn = s.sound !== undefined ? s.sound : true;
   lang = s.lang || 'id';
+  demoOn = s.demo !== undefined ? s.demo : true;
   soundToggle.querySelector('.game-header__icon').textContent = soundOn ? '🔊' : '🔇';
+  completedLetters = getProgress();
   buildSequence();
   renderHelp();
   resize();
   setLetter(0);
+  updateStickerView();
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      refreshScreenStrokes();
+      buildGuide();
+    });
+  }
   requestAnimationFrame(frame);
 }
 

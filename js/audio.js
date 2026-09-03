@@ -180,6 +180,25 @@ export const AudioSynth = {
     osc.stop(ctx.currentTime + 0.15);
   },
 
+  sparkle() {
+    const ctx = getCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const freq = 1300 + Math.random() * 600;
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.6, ctx.currentTime + 0.05);
+
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.14);
+  },
+
   random() {
     const sounds = ['pop', 'boing', 'ding', 'whoosh', 'chime', 'squeak'];
     const name = sounds[Math.floor(Math.random() * sounds.length)];

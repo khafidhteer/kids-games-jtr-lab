@@ -7,8 +7,8 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Menulis Huruf — Kids Games</title>
-  <link rel="stylesheet" href="../../css/style.css?v=20260901">
-  <link rel="stylesheet" href="style.css?v=20260901">
+  <link rel="stylesheet" href="../../css/style.css?v=20260902">
+  <link rel="stylesheet" href="style.css?v=20260902">
 </head>
 <body>
   <div class="game-header">
@@ -25,6 +25,9 @@
       <button class="game-header__btn" id="fullscreen-btn" aria-label="Fullscreen">
         <span style="font-size:1.3rem">⛶</span>
       </button>
+      <button class="game-header__btn" id="sticker-btn" aria-label="Stickers">
+        <span style="font-size:1.3rem">⭐</span>
+      </button>
       <button class="game-header__btn" id="settings-btn" aria-label="Settings">
         <svg><use href="../../assets/svg/icons.svg#icon-settings"/></svg>
       </button>
@@ -40,6 +43,15 @@
     <button class="trace-nav__arrow" id="prev-letter">‹</button>
     <div class="trace-nav__dots" id="letter-dots"></div>
     <button class="trace-nav__arrow" id="next-letter">›</button>
+  </div>
+
+  <!-- Reward reveal shown when a letter is finished -->
+  <div class="reward-card" id="reward-card">
+    <div class="reward-card__badge">
+      <div class="reward-card__letter" id="reward-letter">A</div>
+      <div class="reward-card__emoji" id="reward-emoji">🍎</div>
+      <div class="reward-card__word" id="reward-word">Apel</div>
+    </div>
   </div>
 
   <div class="math-modal" id="math-modal">
@@ -75,6 +87,7 @@
       <div class="settings-panel__label">Sound:</div>
       <div class="settings-panel__mode">
         <label><input type="checkbox" id="settings-sound" checked /> 🔊 Sound on</label>
+        <label><input type="checkbox" id="settings-demo" checked /> ▶️ Auto demo (watch me write)</label>
       </div>
 
       <div class="settings-panel__label">Jump to letter:</div>
@@ -83,6 +96,18 @@
       <div class="settings-panel__btns">
         <button class="settings-panel__btn settings-panel__btn--apply" id="settings-apply">Apply</button>
         <button class="settings-panel__btn settings-panel__btn--cancel" id="settings-cancel">✗</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sticker-modal" id="sticker-modal">
+    <div class="sticker-modal__box">
+      <div class="sticker-modal__title" id="sticker-title">My Stickers</div>
+      <div class="sticker-modal__count" id="sticker-count">⭐ 0 / 26</div>
+      <div class="sticker-grid" id="sticker-grid"></div>
+      <div class="sticker-modal__btns">
+        <button class="sticker-modal__btn sticker-modal__btn--reset" id="sticker-reset">Reset</button>
+        <button class="sticker-modal__btn sticker-modal__btn--close" id="sticker-close">Close</button>
       </div>
     </div>
   </div>
@@ -104,6 +129,6 @@
     </div>
   </div>
 
-  <script type="module" src="game.js?v=20260901"></script>
+  <script type="module" src="game.js?v=20260902"></script>
 </body>
 </html>
