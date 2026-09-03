@@ -14,12 +14,12 @@ const PROGRESS_KEY = 'menulis_huruf_progress';
 const HEADER_H = 64;
 const BOTTOM_BAND = 130;
 const SIDE = 24;
-const TOLERANCE_PX = 42;
+const TOLERANCE_PX = 70;   // wider — kids just need to be near the letter
 const PALM_SIZE = 60;
 const SAMPLE_STEP = 4;
 const TUBE_W = 34;        // trace-brush width (CSS px per unit of scale factor)
-const BREAK_TOL_PX = TOLERANCE_PX * 2.6; // straying further than this erases the stroke (gentle)
-const STRAY_LIMIT = 10;   // consecutive off-path moves before erasing
+const BREAK_TOL_PX = TOLERANCE_PX * 3;  // gentle stray limit
+const STRAY_LIMIT = 30;   // very forgiving
 const TICK_STEP_PX = 90;  // tracing blip cadence (screen px of progress)
 
 const BACK_URL = '../../index.html';
@@ -124,7 +124,7 @@ function getSettings() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch (e) {}
-  return { case: 'both', sound: true, lang: 'id', demo: true };
+  return { case: 'both', sound: true, lang: 'id', demo: false };
 }
 
 function saveSettings() {
@@ -439,35 +439,42 @@ function buildGuide() {
   drawBalloonGlyph();
 }
 
-// Ghost "balloon letter" silhouette built straight from the trace strokes, so
-// the visible letter IS the traceable path — arrows and dashed guides always
-// stay inside the soft translucent body the child snaps their strokes over.
+// Ghost letter rendered as a real font letter shape (like KA Kids), so children
+// see a proper letter silhouette to trace over. The skeleton stroke paths are
+// hidden behind this font-rendered guide and used only for finger tracking.
 function drawBalloonGlyph() {
-  const { s, tube } = metric();
-  gctx.lineCap = 'round';
-  gctx.lineJoin = 'round';
+  const ch = currentChar;
+  const b = letterBounds();
+  const cX = offsetX + ((b.minX + b.maxX) / 2) * scale;
+  const top = offsetY + b.minY * scale;
+  const hPx = (b.maxY - b.minY) * scale;
 
-  // soft translucent body — wide enough to contain arrows, circles & trace lines
-  gctx.strokeStyle = 'rgba(255,255,255,0.3)';
-  gctx.lineWidth = Math.max(tube * 2.5, 60);
-  for (const scr of screenStrokes) {
-    if (!scr || scr.length === 0) continue;
-    gctx.beginPath();
-    gctx.moveTo(scr[0].x, scr[0].y);
-    for (let k = 1; k < scr.length; k++) gctx.lineTo(scr[k].x, scr[k].y);
-    gctx.stroke();
-  }
+  const F = 1000;
+  gctx.font = `${F}px "Fredoka One", sans-serif`;
+  const m = gctx.measureText(ch);
+  const ascent = m.actualBoundingBoxAscent || F * 0.8;
+  const descent = m.actualBoundingBoxDescent || F * 0.2;
+  const inkH = ascent + descent;
 
-  // crisp light outline hugging the same paths
-  gctx.strokeStyle = 'rgba(255,255,255,0.6)';
-  gctx.lineWidth = 3 * s;
-  for (const scr of screenStrokes) {
-    if (!scr || scr.length === 0) continue;
-    gctx.beginPath();
-    gctx.moveTo(scr[0].x, scr[0].y);
-    for (let k = 1; k < scr.length; k++) gctx.lineTo(scr[k].x, scr[k].y);
-    gctx.stroke();
-  }
+  const px = (F * hPx * 0.94) / inkH;
+  const cy = top + hPx / 2;
+  const baseline = cy + (ascent - descent) * (px / F) * 0.5;
+
+  gctx.font = `${px}px "Fredoka One", sans-serif`;
+  gctx.textAlign = 'center';
+  gctx.textBaseline = 'alphabetic';
+
+  // soft translucent fill — like a coloring-book letter silhouette
+  gctx.fillStyle = 'rgba(255,255,255,0.25)';
+  gctx.fillText(ch, cX, baseline);
+
+  // clean outline hugging the letter form
+  gctx.lineWidth = Math.max(10, px * 0.03);
+  gctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  gctx.strokeText(ch, cX, baseline);
+
+  gctx.textAlign = 'start';
+  gctx.textBaseline = 'alphabetic';
 }
 
 // --- Palm rejection input --------------------------------------------------
@@ -854,7 +861,7 @@ function drawLetter() {
   ctx.fill();
   ctx.stroke();
 
-  // ghost balloon-letter glyph layer (static)
+  // ghost letter layer (font-rendered real letter shape)
   ctx.drawImage(guideCanvas, 0, 0, W, H);
 
   const { s, tube } = metric();
@@ -862,48 +869,30 @@ function drawLetter() {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  drawDemoTint();
-
-  // completed strokes — filled green
+  // completed strokes — filled solid green
   for (let i = 0; i < strokes.length; i++) {
     if (!strokeComplete[i]) continue;
     ctx.strokeStyle = '#4ade80';
-    ctx.lineWidth = fillW;
+    ctx.lineWidth = fillW * 1.3;
     strokePoly(ctx, screenStrokes[i]);
   }
 
-  // active stroke — glowing amber trail up to the head
+  // active stroke — glowing warm trail up to the head
   const ci = currentStroke;
   if (!strokeComplete[ci] && head[ci] > 0) {
     const scr = screenStrokes[ci];
     const traced = scr.slice(0, head[ci] + 1);
     ctx.save();
-    ctx.shadowColor = 'rgba(255,179,0,0.85)';
-    ctx.shadowBlur = 14;
+    ctx.shadowColor = 'rgba(255,179,0,0.9)';
+    ctx.shadowBlur = 18;
     ctx.strokeStyle = '#ffb300';
-    ctx.lineWidth = fillW;
+    ctx.lineWidth = fillW * 1.3;
     ctx.beginPath();
     ctx.moveTo(traced[0].x, traced[0].y);
     for (let k = 1; k < traced.length; k++) ctx.lineTo(traced[k].x, traced[k].y);
     ctx.stroke();
     ctx.restore();
   }
-
-  // one clean directional arrow per unfinished stroke
-  const rNum = 17 * s;
-  for (let i = 0; i < strokes.length; i++) {
-    if (strokeComplete[i]) continue;
-    const started = i === ci && head[i] > 0;
-    let from = started ? head[i] : arrowStartSample(i, rNum);
-    if (started && from < head[i]) from = head[i];
-    if (dotStroke(i)) continue;
-    if (demo.active && demo.idx === i) continue; // nib is showing this stroke right now
-    const isActive = i === ci && !demo.active;
-    drawStrokeArrow(i, from, isActive ? 'rgba(255,140,0,0.9)' : 'rgba(249,115,22,0.8)', isActive ? 7 * s : 6 * s, 15 * s);
-  }
-
-  drawNumberCircles(performance.now());
-  drawDemoNib();
 }
 
 // --- Sparkles --------------------------------------------------------------
