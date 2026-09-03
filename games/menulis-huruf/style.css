@@ -76,20 +76,7 @@ html, body {
   pointer-events: auto;
 }
 
-/* Letter label + mode */
-.letter-label {
-  position: fixed;
-  top: 74px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: clamp(2.5rem, 9vw, 5rem);
-  font-weight: 500;
-  color: rgba(255,255,255,0.9);
-  text-shadow: 2px 2px 6px rgba(0,0,0,0.35);
-  z-index: 50;
-  pointer-events: none;
-}
-
+/* Letter mode chip */
 .mode-indicator {
   position: fixed;
   top: 64px;
@@ -507,107 +494,6 @@ html, body {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
 }
-
-/* Sticker book */
-.sticker-modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  align-items: center;
-  justify-content: center;
-}
-
-.sticker-modal.visible {
-  display: flex;
-}
-
-.sticker-modal__box {
-  background: #2a2a4a;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 24px;
-  padding: 24px;
-  text-align: center;
-  width: min(620px, 92vw);
-  max-height: 86vh;
-  overflow-y: auto;
-}
-
-.sticker-modal__title {
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.sticker-modal__count {
-  font-size: 0.95rem;
-  opacity: 0.85;
-  margin-bottom: 12px;
-  font-family: 'Segoe UI', sans-serif;
-  font-weight: 600;
-}
-
-.sticker-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
-  gap: 8px;
-}
-
-.sticker-tile {
-  position: relative;
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.06);
-  font-size: 1.4rem;
-  color: rgba(255, 255, 255, 0.35);
-  font-family: 'Fredoka One', 'Segoe UI', sans-serif;
-}
-
-.sticker-tile.done {
-  background: linear-gradient(135deg, #4ade80, #22c55e);
-  border-color: #86efac;
-  color: #fff;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
-  box-shadow: 0 4px 14px rgba(74, 222, 128, 0.35);
-}
-
-.sticker-tile.done::after {
-  content: '⭐';
-  position: absolute;
-  top: -9px;
-  right: -7px;
-  font-size: 0.95rem;
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
-}
-
-.sticker-modal__btns {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 18px;
-}
-
-.sticker-modal__btn {
-  padding: 10px 26px;
-  border-radius: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  color: #fff;
-  font-family: inherit;
-}
-
-.sticker-modal__btn--reset { background: rgba(180, 80, 80, 0.7); border-color: rgba(180, 80, 80, 0.5); }
-.sticker-modal__btn--reset:active { transform: scale(0.95); }
-.sticker-modal__btn--close { background: rgba(60, 130, 220, 0.7); border-color: rgba(60, 130, 220, 0.5); }
-.sticker-modal__btn--close:active { transform: scale(0.95); }
 
 /* iOS fullscreen hint */
 .ios-fullscreen-hint {

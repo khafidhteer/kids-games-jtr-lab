@@ -8,26 +8,34 @@ import { initSafeguards } from '../../js/safeguard.js';
 initSafeguards();
 
 const STORAGE_KEY = 'menulis_huruf_settings';
-const PROGRESS_KEY = 'menulis_huruf_progress';
 
 // --- Geometry / layout constants -------------------------------------------
 const HEADER_H = 64;
-const BOTTOM_BAND = 130;
+const BOTTOM_BAND = 170;  // bottom area reserved for nav arrows + guide chips
 const SIDE = 24;
-const TOLERANCE_PX = 70;   // wider — kids just need to be near the letter
 const PALM_SIZE = 60;
 const SAMPLE_STEP = 4;
-const TUBE_W = 34;        // trace-brush width (CSS px per unit of scale factor)
-const BREAK_TOL_PX = TOLERANCE_PX * 3;  // gentle stray limit
-const STRAY_LIMIT = 30;   // very forgiving
-const TICK_STEP_PX = 90;  // tracing blip cadence (screen px of progress)
+const TUBE_W = 34;         // rail tube width at scale factor 1 (CSS px)
+const TICK_STEP_PX = 70;   // sparkle cadence while the puck rolls along the rail
+
+// Puck / rail interaction tuning (CSS px) — ported from the reference mechanic.
+const RELEASE_PX = 90;     // finger this far from the puck -> let go
+const SNAP_PX = 60;        // finger this close to the rail -> puck follows it
+const END_SNAP = 32;       // puck this close to the stroke end -> stroke done
+const LOOKAHEAD_PX = 100;  // how far ahead of the puck the rail is scanned
+
+const INK = '#38bdf8';         // ink that fills the rail as the puck travels
+const RAIL_RIM = 'rgba(15,23,42,0.25)';
+const RAIL_CORE = '#ffffff';
+const RAIL_DASH = '#94a3b8';
+const PUCK = '#22c55e';
+const PUCK_ON = '#15803d';
 
 const BACK_URL = '../../index.html';
 
 // --- DOM -------------------------------------------------------------------
 const canvas = document.getElementById('trace-canvas');
 const ctx = canvas.getContext('2d');
-const letterLabel = document.getElementById('letter-label');
 const modeIndicator = document.getElementById('mode-indicator');
 const prevBtn = document.getElementById('prev-letter');
 const nextBtn = document.getElementById('next-letter');
@@ -37,7 +45,6 @@ const fullscreenBtn = document.getElementById('fullscreen-btn');
 const settingsBtn = document.getElementById('settings-btn');
 const helpBtn = document.getElementById('help-btn');
 const backBtn = document.getElementById('back-btn');
-const stickerBtn = document.getElementById('sticker-btn');
 
 const mathModal = document.getElementById('math-modal');
 const mathQuestion = document.getElementById('math-question');
@@ -49,13 +56,6 @@ const settingsPanel = document.getElementById('settings-panel');
 const settingsApply = document.getElementById('settings-apply');
 const settingsCancel = document.getElementById('settings-cancel');
 const picker = document.getElementById('letter-picker');
-
-const stickerModal = document.getElementById('sticker-modal');
-const stickerTitle = document.getElementById('sticker-title');
-const stickerCount = document.getElementById('sticker-count');
-const stickerGrid = document.getElementById('sticker-grid');
-const stickerReset = document.getElementById('sticker-reset');
-const stickerClose = document.getElementById('sticker-close');
 
 const rewardCard = document.getElementById('reward-card');
 const rewardLetter = document.getElementById('reward-letter');
@@ -81,42 +81,42 @@ let audioReady = false;
 let soundOn = true;
 let lang = 'id';
 let caseMode = 'both';
-let demoOn = true;
 
 let sequence = [];
 let letterIndex = 0;
 let currentChar = 'A';
 
-let strokes = [];        // sampled strokes: array of arrays of {x,y} (unit space)
-let screenStrokes = [];  // same strokes projected to screen space (cached)
-let strokeComplete = []; // per stroke
-let head = [];           // head sample index per stroke
+// Static layers
+let guide = null;  // rails + dashed center lines
+let ink = null;    // persistent, masked ink trail (accumulates)
+let mask = null;   // tube silhouette used to clip the ink
+
+// Current letter state
+let strokes = [];        // sampled strokes (unit space) — array of arrays {x,y}
+let screenStrokes = [];  // same strokes in screen space (cached)
+let strokeComplete = []; // per stroke flag
 let currentStroke = 0;
+let segIndex = 0;        // segment of the rail the puck currently sits on
+let puckPos = { x: 0, y: 0 };
+let puckAngle = 0;
+let isDragging = false;
 let celebrating = false;
 let celebrationDone = false;
-
-// Static "balloon letter" glyph layer + dashed centre guide lines
-let guideCanvas = null;
-let gctx = null;
 
 // Confetti + sparkle particles
 let particles = [];
 let sparkles = [];
 
-// Tracing stray / audio throttling
-let activeOffCount = 0;
+// Tracing audio / sparkle throttling
 let tickAcc = 0;
 
-// Auto-write demo ("watch me write") state
-let demo = { active: false, idx: 0, t: 0, pause: 0, tint: [] };
-let demoTimerId = null;
-
-// Sticker book state (persisted across sessions)
-let completedLetters = [];
+// Transient on-canvas message pill
+let msg = null;          // { text, color, until }
 
 const pointers = new Map(); // pointerId -> { x, y, w, h, down }
 let activeId = null;
-let lastTap = 0;
+let grabbedId = null;      // pointerId currently dragging the puck
+let lastFinger = { x: 0, y: 0 };
 
 // --- Settings --------------------------------------------------------------
 function getSettings() {
@@ -124,60 +124,11 @@ function getSettings() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch (e) {}
-  return { case: 'both', sound: true, lang: 'id', demo: false };
+  return { case: 'both', sound: true, lang: 'id' };
 }
 
 function saveSettings() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ case: caseMode, sound: soundOn, lang, demo: demoOn }));
-}
-
-// --- Sticker / progress ----------------------------------------------------
-function getProgress() {
-  try {
-    const raw = localStorage.getItem(PROGRESS_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {}
-  return [];
-}
-
-function saveProgress(list) {
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify(list));
-}
-
-function markLetterComplete(ch) {
-  if (!completedLetters.includes(ch)) {
-    completedLetters.push(ch);
-    saveProgress(completedLetters);
-  }
-}
-
-function renderStickerGrid() {
-  stickerGrid.innerHTML = '';
-  for (const ch of sequence) {
-    const el = document.createElement('div');
-    el.className = 'sticker-tile' + (completedLetters.includes(ch) ? ' done' : '');
-    el.textContent = ch;
-    stickerGrid.appendChild(el);
-  }
-}
-
-function updateStickerView() {
-  const total = sequence.length;
-  const n = sequence.filter((ch) => completedLetters.includes(ch)).length;
-  stickerCount.textContent = `⭐ ${n} / ${total}`;
-  renderStickerGrid();
-}
-
-function showStickerBook() {
-  stickerTitle.textContent = lang === 'id' ? 'Stiker Saya' : 'My Stickers';
-  stickerReset.textContent = lang === 'id' ? 'Hapus' : 'Reset';
-  stickerClose.textContent = lang === 'id' ? 'Tutup' : 'Close';
-  updateStickerView();
-  stickerModal.classList.add('visible');
-}
-
-function hideStickerBook() {
-  stickerModal.classList.remove('visible');
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ case: caseMode, sound: soundOn, lang }));
 }
 
 // --- Sequence --------------------------------------------------------------
@@ -205,112 +156,22 @@ function resetLetter() {
   const raw = LETTERS[currentChar];
   strokes = raw.map((st) => sampleStroke(st));
   strokeComplete = raw.map(() => false);
-  head = raw.map(() => 0);
   currentStroke = 0;
+  segIndex = 0;
+  isDragging = false;
+  celebrating = false;
   celebrationDone = false;
   sparkles = [];
-  activeOffCount = 0;
   tickAcc = 0;
-  letterLabel.textContent = currentChar;
-  updateModeIndicator();
+  msg = null;
+  clearInk();
   computeLayout();
   refreshScreenStrokes();
-  buildGuide();
-  scheduleDemo();
-}
-
-// --- Auto-write demo -------------------------------------------------------
-const DEMO_START_DELAY = 800; // ms before the nib starts after a letter loads
-const DEMO_GAP = 0.35;        // s pause between strokes
-const DEMO_SPEED_UPS = 380;   // unit-space speed of the moving nib
-
-function cancelDemo() {
-  clearTimeout(demoTimerId);
-  demoTimerId = null;
-  demo.active = false;
-}
-
-function scheduleDemo() {
-  cancelDemo();
-  demo.idx = 0;
-  demo.t = 0;
-  demo.pause = 0;
-  demo.tint = strokes.map(() => 0);
-  if (!demoOn || celebrating) return;
-  demoTimerId = setTimeout(() => {
-    demoTimerId = null;
-    if (!demoOn || celebrating) return;
-    demo.active = true;
-    demo.idx = 0;
-    demo.t = 0;
-    demo.pause = 0;
-  }, DEMO_START_DELAY);
-}
-
-function strokeUnitLen(i) {
-  const st = strokes[i];
-  if (!st) return 0;
-  let len = 0;
-  for (let k = 1; k < st.length; k++) {
-    len += Math.hypot(st[k].x - st[k - 1].x, st[k].y - st[k - 1].y);
-  }
-  return len;
-}
-
-function updateDemo(dt) {
-  if (!demo.active) return;
-  if (celebrating) return;
-  if (demo.pause > 0) {
-    demo.pause -= dt;
-    if (demo.pause <= 0) {
-      demo.idx++;
-      demo.t = 0;
-    }
-    return;
-  }
-  const idx = demo.idx;
-  if (idx >= strokes.length) {
-    demo.active = false;
-    return;
-  }
-  const st = strokes[idx];
-  if (!st || st.length < 2) {
-    demo.idx++;
-    return;
-  }
-  const dur = Math.min(2.4, Math.max(0.6, strokeUnitLen(idx) / DEMO_SPEED_UPS));
-  demo.t += dt;
-  const k = Math.min(1, demo.t / dur);
-  demo.tint[idx] = Math.max(demo.tint[idx] || 0, k);
-  if (k >= 1) {
-    demo.tint[idx] = 1;
-    if (idx + 1 >= strokes.length) {
-      demo.active = false;
-    } else {
-      demo.pause = DEMO_GAP;
-    }
-  }
-}
-
-function demoNibPosition() {
-  if (!demo.active || demo.idx >= strokes.length) return null;
-  if (demo.pause > 0) {
-    // holding at the end of the stroke that just finished (idx not advanced yet)
-    const cur = screenStrokes[demo.idx];
-    if (!cur || cur.length === 0) return null;
-    return { x: cur[cur.length - 1].x, y: cur[cur.length - 1].y };
-  }
-  const st = screenStrokes[demo.idx];
-  if (!st || st.length < 2) return null;
-  const k = Math.min(1, demo.t / Math.min(2.4, Math.max(0.6, strokeUnitLen(demo.idx) / DEMO_SPEED_UPS)));
-  const f = Math.max(0, Math.min(st.length - 1, k * (st.length - 1)));
-  const i0 = Math.floor(f);
-  const i1 = Math.min(st.length - 1, i0 + 1);
-  const t = f - i0;
-  return {
-    x: st[i0].x + (st[i1].x - st[i0].x) * t,
-    y: st[i0].y + (st[i1].y - st[i0].y) * t
-  };
+  buildStatic();
+  const first = screenStrokes[0];
+  if (first && first.length) puckPos = { x: first[0].x, y: first[0].y };
+  updatePuckAngle();
+  updateModeIndicator();
 }
 
 function updateModeIndicator() {
@@ -321,9 +182,8 @@ function updateModeIndicator() {
 // --- Sampling (Catmull-Rom interpolation for smooth curves) ----------------
 function sampleStroke(points) {
   const out = [];
-  if (points.length < 2) return out.map(() => ({ x: 0, y: 0 }));
+  if (points.length < 2) return out;
   if (points.length === 2) {
-    // just two points — straight line (Catmull-Rom degenerates, but still works)
     const [ax, ay] = points[0];
     const [bx, by] = points[1];
     const dx = bx - ax, dy = by - ay;
@@ -334,7 +194,6 @@ function sampleStroke(points) {
     return out;
   }
 
-  // Catmull-Rom interpolation: smooth curve through the original control points
   const cr = (p0, p1, p2, p3, t) => {
     const t2 = t * t, t3 = t2 * t;
     return {
@@ -360,10 +219,24 @@ function sampleStroke(points) {
   return out;
 }
 
-// --- Layout ----------------------------------------------------------------
-function metric() {
-  const s = Math.min(1.6, scale);
-  return { s, tube: TUBE_W * s };
+// --- Scale helpers ---------------------------------------------------------
+function factor() {
+  return Math.min(1.6, scale);
+}
+
+function tubeW() {
+  return Math.max(18, TUBE_W * factor());
+}
+
+function puckR() {
+  return Math.max(13, tubeW() * 0.5);
+}
+
+// --- Layers / layout -------------------------------------------------------
+function makeLayer() {
+  const c = document.createElement('canvas');
+  const g = c.getContext('2d');
+  return { canvas: c, ctx: g };
 }
 
 function resize() {
@@ -375,17 +248,17 @@ function resize() {
   canvas.style.width = W + 'px';
   canvas.style.height = H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  if (!guideCanvas) {
-    guideCanvas = document.createElement('canvas');
-    gctx = guideCanvas.getContext('2d');
+  if (!guide) guide = makeLayer();
+  if (!ink) ink = makeLayer();
+  if (!mask) mask = makeLayer();
+  for (const l of [guide, ink, mask]) {
+    l.canvas.width = W * dpr;
+    l.canvas.height = H * dpr;
+    l.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  guideCanvas.width = W * dpr;
-  guideCanvas.height = H * dpr;
-  gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  zone = { x: SIDE, y: HEADER_H + 6, w: W - SIDE * 2, h: H - HEADER_H - BOTTOM_BAND - 12 };
+  zone = { x: SIDE, y: HEADER_H + 6, w: W - SIDE * 2, h: H - HEADER_H - BOTTOM_BAND - 6 };
   computeLayout();
-  refreshScreenStrokes();
-  buildGuide();
+  if (currentChar) resetLetter();
 }
 
 function letterBounds() {
@@ -415,230 +288,196 @@ function toScreen(ux, uy) {
   return { x: offsetX + ux * scale, y: offsetY + uy * scale };
 }
 
-function toUnit(sx, sy) {
-  return { x: (sx - offsetX) / scale, y: (sy - offsetY) / scale };
-}
-
 function refreshScreenStrokes() {
   screenStrokes = strokes.map((pts) => pts.map((p) => toScreen(p.x, p.y)));
 }
 
-function strokePoly(pen, scr) {
+function tracePath(pen, scr) {
   pen.beginPath();
   pen.moveTo(scr[0].x, scr[0].y);
   for (let i = 1; i < scr.length; i++) pen.lineTo(scr[i].x, scr[i].y);
-  pen.stroke();
 }
 
-// Build the static ghost "balloon letter" glyph layer.
-function buildGuide() {
-  if (!guideCanvas) return;
-  gctx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
-  gctx.lineCap = 'round';
-  gctx.lineJoin = 'round';
-  drawBalloonGlyph();
+function clearInk() {
+  ink.ctx.clearRect(0, 0, W, H);
 }
 
-// Ghost letter rendered as a real font letter shape (like KA Kids), so children
-// see a proper letter silhouette to trace over. The skeleton stroke paths are
-// hidden behind this font-rendered guide and used only for finger tracking.
-function drawBalloonGlyph() {
-  const ch = currentChar;
-  const b = letterBounds();
-  const cX = offsetX + ((b.minX + b.maxX) / 2) * scale;
-  const top = offsetY + b.minY * scale;
-  const hPx = (b.maxY - b.minY) * scale;
+// Draw the static "rail" look: soft rim, bright tube core, dashed center line.
+// Also (re)build the black tube mask used to clip the ink into the rails.
+function buildStatic() {
+  const g = guide.ctx;
+  const m = mask.ctx;
+  g.clearRect(0, 0, W, H);
+  m.clearRect(0, 0, W, H);
+  if (!screenStrokes.length) return;
 
-  const F = 1000;
-  gctx.font = `${F}px "Fredoka One", sans-serif`;
-  const m = gctx.measureText(ch);
-  const ascent = m.actualBoundingBoxAscent || F * 0.8;
-  const descent = m.actualBoundingBoxDescent || F * 0.2;
-  const inkH = ascent + descent;
+  const s = factor();
+  const w = tubeW();
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  m.lineCap = 'round';
+  m.lineJoin = 'round';
 
-  const px = (F * hPx * 0.94) / inkH;
-  const cy = top + hPx / 2;
-  const baseline = cy + (ascent - descent) * (px / F) * 0.5;
+  // rim / shadow ring around every rail
+  g.strokeStyle = RAIL_RIM;
+  g.lineWidth = w + 6 * s;
+  for (const scr of screenStrokes) { tracePath(g, scr); g.stroke(); }
 
-  gctx.font = `${px}px "Fredoka One", sans-serif`;
-  gctx.textAlign = 'center';
-  gctx.textBaseline = 'alphabetic';
+  // bright tube core
+  g.strokeStyle = RAIL_CORE;
+  g.lineWidth = w;
+  for (const scr of screenStrokes) { tracePath(g, scr); g.stroke(); }
 
-  // soft translucent fill — like a coloring-book letter silhouette
-  gctx.fillStyle = 'rgba(255,255,255,0.25)';
-  gctx.fillText(ch, cX, baseline);
+  // dashed center line that shows the exact path to follow
+  g.strokeStyle = RAIL_DASH;
+  g.lineWidth = Math.max(2, 2.4 * s);
+  g.setLineDash([7 * s, 9 * s]);
+  for (const scr of screenStrokes) { tracePath(g, scr); g.stroke(); }
+  g.setLineDash([]);
 
-  // clean outline hugging the letter form
-  gctx.lineWidth = Math.max(10, px * 0.03);
-  gctx.strokeStyle = 'rgba(255,255,255,0.85)';
-  gctx.strokeText(ch, cX, baseline);
-
-  gctx.textAlign = 'start';
-  gctx.textBaseline = 'alphabetic';
+  // mask for ink clipping (slightly wider than the ink so edges stay crisp)
+  m.strokeStyle = '#000';
+  m.lineWidth = w + 8 * s;
+  for (const scr of screenStrokes) { tracePath(m, scr); m.stroke(); }
 }
 
-// --- Palm rejection input --------------------------------------------------
-function inZone(x, y) {
-  return x >= zone.x && x <= zone.x + zone.w && y >= zone.y && y <= zone.y + zone.h;
+// Paint a section of ink between two rail points, clipped to the tube mask.
+// The mask clip is limited to the segment's bounding box so it stays cheap.
+function paintInk(p1, p2) {
+  const g = ink.ctx;
+  const s = factor();
+  g.save();
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  g.lineWidth = tubeW() + 2 * s;
+  g.strokeStyle = INK;
+  g.beginPath();
+  g.moveTo(p1.x, p1.y);
+  g.lineTo(p2.x, p2.y);
+  g.stroke();
+
+  const m = tubeW() + 10 * s;
+  const x0 = Math.max(0, Math.floor(Math.min(p1.x, p2.x) - m));
+  const y0 = Math.max(0, Math.floor(Math.min(p1.y, p2.y) - m));
+  const x1 = Math.min(W, Math.ceil(Math.max(p1.x, p2.x) + m));
+  const y1 = Math.min(H, Math.ceil(Math.max(p1.y, p2.y) + m));
+  const w = x1 - x0;
+  const h = y1 - y0;
+  if (w > 0 && h > 0) {
+    g.globalCompositeOperation = 'destination-in';
+    g.drawImage(mask.canvas, x0 * dpr, y0 * dpr, w * dpr, h * dpr, x0, y0, w, h);
+  }
+  g.restore();
 }
 
-function contactSize(p) {
-  if (p.w > 1 && p.h > 1) return (p.w + p.h) / 2;
-  return 0;
+// --- Puck logic ------------------------------------------------------------
+function projectToSegment(P, A, B) {
+  const abx = B.x - A.x;
+  const aby = B.y - A.y;
+  const l2 = abx * abx + aby * aby;
+  if (l2 === 0) return { point: { x: A.x, y: A.y }, dist: Math.hypot(P.x - A.x, P.y - A.y) };
+  let t = ((P.x - A.x) * abx + (P.y - A.y) * aby) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return { point: { x: A.x + t * abx, y: A.y + t * aby }, dist: Math.hypot(P.x - (A.x + t * abx), P.y - (A.y + t * aby)) };
 }
 
-function isPalm(p) {
-  const s = contactSize(p);
-  if (s > 0) return s > PALM_SIZE;
-  return false;
+function updatePuckAngle() {
+  const scr = screenStrokes[currentStroke];
+  if (!scr || scr.length < 2) return;
+  const look = Math.min(segIndex + 3, scr.length - 1);
+  const tp = scr[look];
+  const dx = tp.x - puckPos.x;
+  const dy = tp.y - puckPos.y;
+  if (Math.hypot(dx, dy) > 1) puckAngle = Math.atan2(dy, dx);
 }
 
-function isFinger(p) {
-  return p.down && inZone(p.x, p.y) && !isPalm(p);
+function setMessage(text, color, ms) {
+  msg = { text, color, until: performance.now() + (ms || 2200) };
 }
 
-function recomputeActive() {
-  if (activeId !== null && pointers.has(activeId) && isFinger(pointers.get(activeId))) {
+function grabHint() {
+  return lang === 'id' ? 'Pegang bola hijau di garis, lalu seret!' : 'Grab the green ball, then drag!';
+}
+
+function nextStrokeMsg() {
+  return lang === 'id' ? 'Bagus! Seret ke goresan berikutnya.' : 'Great! Drag the next stroke.';
+}
+
+function finishStroke() {
+  const scr = screenStrokes[currentStroke];
+  const last = scr[scr.length - 1];
+  paintInk(puckPos, last);
+  puckPos = { x: last.x, y: last.y };
+  strokeComplete[currentStroke] = true;
+  spawnSparkles(last.x, last.y, 16);
+  if (soundOn) AudioSynth.ding();
+  currentStroke++;
+  segIndex = 0;
+  if (currentStroke >= strokes.length) {
+    isDragging = false;
+    onLetterComplete();
     return;
   }
-  activeId = null;
-  let bestId = null;
-  let bestSize = Infinity;
-  for (const [id, p] of pointers) {
-    if (!isFinger(p)) continue;
-    const s = contactSize(p) || 1;
-    if (s < bestSize) {
-      bestSize = s;
-      bestId = id;
-    }
-  }
-  activeId = bestId;
-}
-
-function onPointerDown(e) {
-  if (celebrating) return;
-  cancelDemo();
-  if (!audioReady) {
-    unlockAudio();
-    audioReady = true;
-  }
-  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, w: e.width || 0, h: e.height || 0, down: true });
-  try {
-    canvas.setPointerCapture(e.pointerId);
-  } catch (err) {}
-  recomputeActive();
-}
-
-function onPointerMove(e) {
-  if (!pointers.has(e.pointerId)) return;
-  const p = pointers.get(e.pointerId);
-  p.x = e.clientX;
-  p.y = e.clientY;
-  p.w = e.width || p.w;
-  p.h = e.height || p.h;
-
-  if (activeId !== e.pointerId) {
-    recomputeActive();
-  } else if (!isFinger(p)) {
-    // active pointer turned into a palm (grew huge) — reselect
-    recomputeActive();
-  }
-  if (activeId !== e.pointerId || celebrating) return;
-
-  trace(e.clientX, e.clientY);
-}
-
-function onPointerUp(e) {
-  pointers.delete(e.pointerId);
-  if (activeId === e.pointerId) {
-    activeId = null;
-    activeOffCount = 0;
-    recomputeActive();
+  setMessage(nextStrokeMsg(), '#7dd3fc', 1700);
+  const next0 = screenStrokes[currentStroke][0];
+  puckPos = { x: next0.x, y: next0.y };
+  updatePuckAngle();
+  if (isDragging && Math.hypot(lastFinger.x - puckPos.x, lastFinger.y - puckPos.y) > RELEASE_PX) {
+    isDragging = false;
   }
 }
 
-canvas.addEventListener('pointerdown', onPointerDown);
-canvas.addEventListener('pointermove', onPointerMove);
-canvas.addEventListener('pointerup', onPointerUp);
-canvas.addEventListener('pointercancel', onPointerUp);
-
-// --- Tracing / scoring -----------------------------------------------------
-function trace(sx, sy) {
-  const u = toUnit(sx, sy);
-  const tol = TOLERANCE_PX / scale;
-  const tol2 = tol * tol;
-  const idx = currentStroke;
-  const st = strokes[idx];
-  if (!st || !screenStrokes[idx]) return;
-
-  // Boundary enforcement: if the in-progress stroke has lost the line, erase it.
-  if (head[idx] > 0) {
-    const brk = BREAK_TOL_PX / scale;
-    const brk2 = brk * brk;
-    let d2 = Infinity;
-    for (let k = 0; k < st.length; k++) {
-      const dx = st[k].x - u.x;
-      const dy = st[k].y - u.y;
-      const dd = dx * dx + dy * dy;
-      if (dd < d2) d2 = dd;
-      if (d2 <= brk2) break;
-    }
-    if (d2 > brk2) {
-      if (++activeOffCount >= STRAY_LIMIT) resetCurrentStroke();
-      return;
-    }
-    activeOffCount = 0;
+function puckDrag(sx, sy) {
+  const scr = screenStrokes[currentStroke];
+  if (!scr || scr.length < 2) {
+    isDragging = false;
+    return;
+  }
+  const pos = { x: sx, y: sy };
+  if (Math.hypot(pos.x - puckPos.x, pos.y - puckPos.y) > RELEASE_PX) {
+    isDragging = false;
+    return;
   }
 
-  const h = head[idx];
-  let j = Math.max(0, h - 2);
-  while (j < st.length) {
-    const dx = st[j].x - u.x;
-    const dy = st[j].y - u.y;
-    if (dx * dx + dy * dy > tol2) break;
-    j++;
-  }
-  if (j <= h) return; // no forward progress (finger not near the head)
-
-  let coveredPx = 0;
-  for (let k = h; k < j - 1; k++) {
-    coveredPx += Math.hypot((st[k + 1].x - st[k].x) * scale, (st[k + 1].y - st[k].y) * scale);
-  }
-
-  head[idx] = j;
-  const tail = screenStrokes[idx][Math.min(j, screenStrokes[idx].length - 1)];
-  activeOffCount = 0;
-
-  if (j >= st.length - 1) {
-    strokeComplete[idx] = true;
-    tickAcc = 0;
-    if (soundOn) AudioSynth.ding();
-    spawnSparkles(tail.x, tail.y, 10);
-    currentStroke++;
-    if (currentStroke >= strokes.length) {
-      onLetterComplete();
-    } else {
-      head[currentStroke] = 0;
-      activeOffCount = 0;
+  let bestSeg = segIndex;
+  let bestDist = Infinity;
+  let best = null;
+  let ahead = 0;
+  const maxI = Math.min(scr.length - 2, segIndex + 160);
+  for (let i = segIndex; i <= maxI; i++) {
+    const pr = projectToSegment(pos, scr[i], scr[i + 1]);
+    if (pr.dist < bestDist) {
+      bestDist = pr.dist;
+      bestSeg = i;
+      best = pr.point;
     }
-  } else {
-    tickAcc += coveredPx;
-    if (soundOn) {
+    if (i > segIndex) {
+      ahead += Math.hypot(scr[i].x - scr[i - 1].x, scr[i].y - scr[i - 1].y);
+      if (ahead > LOOKAHEAD_PX) break;
+    }
+  }
+
+  if (bestDist < SNAP_PX && best) {
+    const covered = Math.hypot(best.x - puckPos.x, best.y - puckPos.y);
+    if (covered > 0.5) {
+      paintInk(puckPos, best);
+      puckPos = best;
+      segIndex = bestSeg;
+      tickAcc += covered;
       while (tickAcc >= TICK_STEP_PX) {
         tickAcc -= TICK_STEP_PX;
-        AudioSynth.sparkle();
+        if (soundOn) AudioSynth.sparkle();
+        spawnSparkles(puckPos.x, puckPos.y, 1);
+      }
+      updatePuckAngle();
+
+      const last = scr[scr.length - 1];
+      const dEnd = Math.hypot(puckPos.x - last.x, puckPos.y - last.y);
+      if (segIndex >= scr.length - 6 && dEnd < END_SNAP) {
+        finishStroke();
       }
     }
-    if (coveredPx > 8) spawnSparkles(tail.x, tail.y, Math.min(4, 1 + Math.floor(coveredPx / 14)));
   }
-}
-
-function resetCurrentStroke() {
-  if (celebrating) return;
-  head[currentStroke] = 0;
-  activeOffCount = 0;
-  tickAcc = 0;
-  if (soundOn) AudioSynth.boing();
 }
 
 // --- Reward / celebration --------------------------------------------------
@@ -659,8 +498,6 @@ function onLetterComplete() {
   if (celebrating || celebrationDone) return;
   celebrating = true;
   celebrationDone = true;
-  markLetterComplete(currentChar);
-  updateStickerView();
   spawnConfetti();
   if (soundOn) AudioSynth.chime();
 
@@ -684,223 +521,150 @@ function onLetterComplete() {
   }, 4800);
 }
 
-// --- Rendering -------------------------------------------------------------
-function fillArrow(x, y, ang, size, color) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(ang);
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(size * 0.7, 0);
-  ctx.lineTo(-size * 0.45, size * 0.55);
-  ctx.lineTo(-size * 0.45, -size * 0.55);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
+// --- Pointer input ---------------------------------------------------------
+function inZone(x, y) {
+  return x >= zone.x && x <= zone.x + zone.w && y >= zone.y && y <= zone.y + zone.h;
 }
 
-const DOT_LEN_UNIT = 55; // strokes shorter than this are treated as dots — no arrow
-
-function dotStroke(i) {
-  return strokeUnitLen(i) < DOT_LEN_UNIT;
+function inBand(x, y) {
+  return y >= H - BOTTOM_BAND + 4 && y <= H - 40;
 }
 
-// First sample of stroke i that sits clear of its numbered start circle.
-function arrowStartSample(i, r) {
-  const scr = screenStrokes[i];
-  if (!scr || scr.length < 2) return 0;
-  const target = r + 5;
-  let dist = 0;
-  for (let k = 1; k < scr.length; k++) {
-    dist += Math.hypot(scr[k].x - scr[k - 1].x, scr[k].y - scr[k - 1].y);
-    if (dist >= target) return k;
-  }
+function contactSize(p) {
+  if (p.w > 1 && p.h > 1) return (p.w + p.h) / 2;
   return 0;
 }
 
-// One clean directional arrow from the start circle to the stroke's end.
-function drawStrokeArrow(i, from, color, w, head) {
-  const scr = screenStrokes[i];
-  if (!scr || scr.length < 3) return;
-  if (dotStroke(i)) return;
-  if (from >= scr.length - 2) return;
-  ctx.save();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = w;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  ctx.moveTo(scr[from].x, scr[from].y);
-  for (let k = from + 1; k < scr.length; k++) ctx.lineTo(scr[k].x, scr[k].y);
-  ctx.stroke();
-  ctx.restore();
-  const e0 = scr[scr.length - 1];
-  const e1 = scr[Math.max(0, scr.length - 3)];
-  fillArrow(e0.x, e0.y, Math.atan2(e0.y - e1.y, e0.x - e1.x), head, color);
+function isPalm(p) {
+  const s = contactSize(p);
+  return s > 0 ? s > PALM_SIZE : false;
 }
 
-// White numbered start circles; overlapping circles are pushed apart so the
-// numbers always stay legible (handwriter-style).
-function drawNumberCircles(now) {
-  const { s } = metric();
-  const r = 17 * s;
-  const pts = screenStrokes.map((scr) => ({ x: scr[0].x, y: scr[0].y }));
-  const minSep = r * 2 + 6;
-  for (let i = 0; i < pts.length; i++) {
-    for (let j = i + 1; j < pts.length; j++) {
-      const dx = pts[j].x - pts[i].x;
-      const dy = pts[j].y - pts[i].y;
-      const d = Math.hypot(dx, dy);
-      if (d < minSep) {
-        if (d < 0.5) {
-          pts[j].x = pts[i].x + minSep;
-        } else {
-          const k = minSep / d;
-          pts[j].x = pts[i].x + dx * k;
-          pts[j].y = pts[i].y + dy * k;
-        }
-      }
+function isFinger(p) {
+  return p.down && !isPalm(p);
+}
+
+function recomputeActive() {
+  if (activeId !== null && pointers.has(activeId) && isFinger(pointers.get(activeId))) {
+    return;
+  }
+  activeId = null;
+  let bestId = null;
+  let bestSize = Infinity;
+  for (const [id, p] of pointers) {
+    if (!isFinger(p)) continue;
+    const s = contactSize(p) || 1;
+    if (s < bestSize) {
+      bestSize = s;
+      bestId = id;
     }
   }
+  activeId = bestId;
+}
 
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  for (let i = 0; i < strokes.length; i++) {
-    const done = strokeComplete[i];
-    const isCurrent = i === currentStroke;
-    const pulse = !done && isCurrent && !demo.active;
-    let ring = '#f97316'; // pending orange
-    if (done) ring = '#22c55e';
-    else if (isCurrent && !demo.active) ring = '#ffb300';
-    const rr = pulse ? r * (1 + 0.12 * Math.sin(now / 240)) : r;
+function inResetPill(x, y) {
+  const pill = bottomPillRect(resetLabel());
+  return x >= pill.x && x <= pill.x + pill.w && y >= pill.y && y <= pill.y + pill.h;
+}
 
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.25)';
-    ctx.shadowBlur = 4;
-    ctx.beginPath();
-    ctx.arc(pts[i].x, pts[i].y, rr, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-    ctx.restore();
-
-    ctx.lineWidth = Math.max(2, 3 * s);
-    ctx.strokeStyle = ring;
-    ctx.beginPath();
-    ctx.arc(pts[i].x, pts[i].y, rr, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.fillStyle = ring;
-    ctx.font = `bold ${Math.round(rr * 1.1)}px "Fredoka One", sans-serif`;
-    ctx.fillText(String(i + 1), pts[i].x, pts[i].y + rr * 0.04);
+function onPointerDown(e) {
+  if (celebrating) return;
+  if (!audioReady) {
+    unlockAudio();
+    audioReady = true;
   }
-}
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, w: e.width || 0, h: e.height || 0, down: true });
+  try {
+    canvas.setPointerCapture(e.pointerId);
+  } catch (err) {}
+  recomputeActive();
 
-// Soft tint left behind by the auto-write demo on still-pending strokes.
-function drawDemoTint() {
-  if (!demo.tint || demo.tint.length === 0) return;
-  const { s, tube } = metric();
-  const fillW = Math.max(4, tube - 4 * s);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = 'rgba(133,92,222,0.4)';
-  ctx.lineWidth = fillW;
-  for (let i = 0; i < strokes.length; i++) {
-    if (strokeComplete[i]) continue;
-    const p = demo.tint[i] || 0;
-    if (p <= 0) continue;
-    const scr = screenStrokes[i];
-    const to = Math.max(1, Math.floor(p * (scr.length - 1)));
-    if (to >= scr.length) continue;
-    ctx.beginPath();
-    ctx.moveTo(scr[0].x, scr[0].y);
-    for (let k = 1; k <= to; k++) ctx.lineTo(scr[k].x, scr[k].y);
-    ctx.stroke();
+  if (activeId !== e.pointerId) return;
+  const p = pointers.get(e.pointerId);
+  if (!isFinger(p)) return;
+
+  // reset chip lives below the trace zone (only when no message is shown)
+  if (inBand(e.clientX, e.clientY)) {
+    if (!msg && inResetPill(e.clientX, e.clientY)) {
+      resetLetter();
+    }
+    return;
   }
-}
+  if (!inZone(e.clientX, e.clientY)) return;
 
-function drawDemoNib() {
-  if (!demo.active) return;
-  const pos = demoNibPosition();
-  if (!pos) return;
-  const { s } = metric();
-  const r = 12 * s;
-  ctx.save();
-  ctx.shadowColor = 'rgba(255,112,67,0.85)';
-  ctx.shadowBlur = 14;
-  ctx.beginPath();
-  ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#ff7043';
-  ctx.fill();
-  ctx.restore();
-  ctx.beginPath();
-  ctx.arc(pos.x, pos.y, r * 0.4, 0, Math.PI * 2);
-  ctx.fillStyle = '#ffffff';
-  ctx.fill();
-}
-
-function drawLetter() {
-  ctx.clearRect(0, 0, W, H);
-
-  // soft trace-zone background
-  ctx.fillStyle = 'rgba(255,255,255,0.07)';
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  if (typeof ctx.roundRect === 'function') {
-    ctx.roundRect(zone.x, zone.y, zone.w, zone.h, 24);
+  grabbedId = e.pointerId;
+  const grabR = puckR() + 26;
+  const d = Math.hypot(e.clientX - puckPos.x, e.clientY - puckPos.y);
+  if (d <= grabR) {
+    isDragging = true;
+    lastFinger = { x: e.clientX, y: e.clientY };
+    msg = null;
   } else {
-    const { x, y, w, h } = zone;
-    const r = 24;
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-  ctx.fill();
-  ctx.stroke();
-
-  // ghost letter layer (font-rendered real letter shape)
-  ctx.drawImage(guideCanvas, 0, 0, W, H);
-
-  const { s, tube } = metric();
-  const fillW = Math.max(4, tube - 4 * s);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  // completed strokes — filled solid green
-  for (let i = 0; i < strokes.length; i++) {
-    if (!strokeComplete[i]) continue;
-    ctx.strokeStyle = '#4ade80';
-    ctx.lineWidth = fillW * 1.3;
-    strokePoly(ctx, screenStrokes[i]);
-  }
-
-  // active stroke — glowing warm trail up to the head
-  const ci = currentStroke;
-  if (!strokeComplete[ci] && head[ci] > 0) {
-    const scr = screenStrokes[ci];
-    const traced = scr.slice(0, head[ci] + 1);
-    ctx.save();
-    ctx.shadowColor = 'rgba(255,179,0,0.9)';
-    ctx.shadowBlur = 18;
-    ctx.strokeStyle = '#ffb300';
-    ctx.lineWidth = fillW * 1.3;
-    ctx.beginPath();
-    ctx.moveTo(traced[0].x, traced[0].y);
-    for (let k = 1; k < traced.length; k++) ctx.lineTo(traced[k].x, traced[k].y);
-    ctx.stroke();
-    ctx.restore();
+    setMessage(grabHint(), '#fbbf24', 1800);
   }
 }
+
+function onPointerMove(e) {
+  if (!pointers.has(e.pointerId)) return;
+  const p = pointers.get(e.pointerId);
+  p.x = e.clientX;
+  p.y = e.clientY;
+  p.w = e.width || p.w;
+  p.h = e.height || p.h;
+
+  if (activeId !== e.pointerId) {
+    recomputeActive();
+  } else if (!isFinger(p)) {
+    recomputeActive();
+  }
+  if (celebrating) return;
+
+  if (grabbedId === e.pointerId) {
+    const gp = pointers.get(e.pointerId);
+    if (gp && !isFinger(gp)) {
+      grabbedId = null;
+      isDragging = false;
+      return;
+    }
+    lastFinger = { x: e.clientX, y: e.clientY };
+    if (!isDragging) {
+      if (!inBand(e.clientX, e.clientY)) {
+        const grabR = puckR() + 26;
+        const d = Math.hypot(e.clientX - puckPos.x, e.clientY - puckPos.y);
+        if (d <= grabR) {
+          isDragging = true;
+          msg = null;
+        }
+      }
+      return;
+    }
+    puckDrag(e.clientX, e.clientY);
+  }
+}
+
+function onPointerUp(e) {
+  pointers.delete(e.pointerId);
+  if (grabbedId === e.pointerId) {
+    grabbedId = null;
+    isDragging = false;
+  }
+  if (activeId === e.pointerId) {
+    activeId = null;
+    recomputeActive();
+  }
+}
+
+canvas.addEventListener('pointerdown', onPointerDown);
+canvas.addEventListener('pointermove', onPointerMove);
+canvas.addEventListener('pointerup', onPointerUp);
+canvas.addEventListener('pointercancel', onPointerUp);
 
 // --- Sparkles --------------------------------------------------------------
 function spawnSparkles(x, y, n) {
-  const colors = ['#ffffff', '#fff3bf', '#ffe58a', '#ffd93d'];
+  const colors = ['#ffffff', '#bae6fd', '#7dd3fc', '#38bdf8'];
   for (let i = 0; i < n; i++) {
     const ang = Math.random() * Math.PI * 2;
-    const spd = 20 + Math.random() * 70;
+    const spd = 30 + Math.random() * 90;
     sparkles.push({
       x: x + (Math.random() - 0.5) * 8,
       y: y + (Math.random() - 0.5) * 8,
@@ -937,7 +701,7 @@ function drawSparkles() {
 function spawnConfetti() {
   const colors = ['#ffd93d', '#4ade80', '#60a5fa', '#f472b6', '#fb923c', '#a78bfa'];
   const cx = W / 2;
-  const cy = H / 2;
+  const cy = zone.y + zone.h * 0.4;
   particles = [];
   for (let i = 0; i < 90; i++) {
     const ang = Math.random() * Math.PI * 2;
@@ -981,6 +745,124 @@ function drawConfetti() {
   ctx.globalAlpha = 1;
 }
 
+// --- Scene drawing ---------------------------------------------------------
+function roundRectPath(g, x, y, w, h, r) {
+  g.beginPath();
+  if (typeof g.roundRect === 'function') {
+    g.roundRect(x, y, w, h, r);
+    return;
+  }
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
+
+function resetLabel() {
+  return lang === 'id' ? '↺ Ulangi' : '↺ Redo';
+}
+
+// Single pill slot between the trace zone and the nav arrows. It shows the
+// "Ulangi" reset chip by default; transient coaching messages borrow the slot.
+function bottomPillRect(text) {
+  ctx.font = `bold 16px "Fredoka One", "Segoe UI", sans-serif`;
+  const tw = ctx.measureText(text).width;
+  const w = Math.min(W - 24, Math.max(124, tw + 60));
+  const h = 44;
+  const cx = W / 2;
+  const cy = H - BOTTOM_BAND + 24;
+  return { x: cx - w / 2, y: cy - h / 2, w, h, cx, cy };
+}
+
+function drawPillText(text, color, alpha) {
+  const pill = bottomPillRect(text);
+  ctx.save();
+  ctx.globalAlpha = Math.max(0.05, Math.min(1, alpha));
+  ctx.shadowColor = 'rgba(0,0,0,0.35)';
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = 'rgba(15,23,42,0.55)';
+  roundRectPath(ctx, pill.x, pill.y, pill.w, pill.h, pill.h / 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.globalAlpha = Math.max(0.05, Math.min(1, alpha));
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 1.5;
+  roundRectPath(ctx, pill.x, pill.y, pill.w, pill.h, pill.h / 2);
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.font = `bold 16px "Fredoka One", "Segoe UI", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, pill.cx, pill.cy + 1);
+  ctx.textAlign = 'start';
+  ctx.textBaseline = 'alphabetic';
+  ctx.globalAlpha = 1;
+}
+
+function drawBottomPill(now) {
+  if (celebrating) return;
+  if (msg) {
+    if (now > msg.until) {
+      msg = null;
+    } else {
+      drawPillText(msg.text, msg.color, (msg.until - now) / 500);
+      return;
+    }
+  }
+  drawPillText(resetLabel(), '#ffffff', 1);
+}
+
+function drawPuck(now) {
+  if (celebrating) return;
+  const scr = screenStrokes[currentStroke];
+  if (!scr) return;
+  if (currentStroke >= strokes.length) return;
+  const r = puckR();
+  const idle = !isDragging;
+  const pulse = idle ? 1 + 0.10 * Math.sin(now / 280) : 1;
+
+  ctx.save();
+  ctx.translate(puckPos.x, puckPos.y);
+
+  ctx.beginPath();
+  ctx.arc(0, 0, (r + 5) * pulse, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.shadowColor = 'rgba(34,197,94,0.9)';
+  ctx.shadowBlur = idle ? 16 : 6;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = isDragging ? PUCK_ON : PUCK;
+  ctx.fill();
+
+  ctx.rotate(puckAngle);
+  const tip = r * 0.42;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(tip, 0);
+  ctx.lineTo(-tip * 0.55, -tip * 0.7);
+  ctx.lineTo(-tip * 0.18, 0);
+  ctx.lineTo(-tip * 0.55, tip * 0.7);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawScene(now) {
+  ctx.clearRect(0, 0, W, H);
+  if (guide) ctx.drawImage(guide.canvas, 0, 0, W, H);
+  if (ink) ctx.drawImage(ink.canvas, 0, 0, W, H);
+  drawPuck(now);
+  drawBottomPill(now);
+  drawConfetti();
+  drawSparkles();
+}
+
 // --- Main loop -------------------------------------------------------------
 let lastTime = performance.now();
 
@@ -989,10 +871,7 @@ function frame(now) {
   lastTime = now;
   if (particles.length > 0) updateConfetti(dt);
   if (sparkles.length > 0) updateSparkles(dt);
-  if (demo.active) updateDemo(dt);
-  drawLetter();
-  drawConfetti();
-  drawSparkles();
+  drawScene(now);
   requestAnimationFrame(frame);
 }
 
@@ -1055,12 +934,6 @@ backBtn.addEventListener('pointerdown', (e) => {
   showMathGate();
 });
 
-stickerBtn.addEventListener('pointerdown', (e) => {
-  e.stopPropagation();
-  pendingAction = 'sticker';
-  showMathGate();
-});
-
 // --- Math gate -------------------------------------------------------------
 function showMathGate() {
   const a = Math.floor(Math.random() * 8) + 1;
@@ -1078,13 +951,12 @@ function hideMathGate() {
 
 function resolveAction() {
   if (pendingAction === 'help') {
+    renderHelp();
     helpModal.classList.add('visible');
   } else if (pendingAction === 'back') {
     window.location.href = BACK_URL;
   } else if (pendingAction === 'settings') {
     showSettings();
-  } else if (pendingAction === 'sticker') {
-    showStickerBook();
   }
   pendingAction = null;
 }
@@ -1121,7 +993,7 @@ function showSettings() {
   const s = getSettings();
   document.querySelector(`input[name="case"][value="${s.case}"]`).checked = true;
   document.querySelector(`input[name="lang"][value="${s.lang}"]`).checked = true;
-  document.getElementById('settings-demo').checked = demoOn !== false;
+  document.getElementById('settings-sound').checked = soundOn;
   renderPicker(s.case);
   settingsPanel.classList.add('visible');
 }
@@ -1152,7 +1024,6 @@ settingsApply.addEventListener('pointerdown', (e) => {
   caseMode = document.querySelector('input[name="case"]:checked').value;
   lang = document.querySelector('input[name="lang"]:checked').value;
   soundOn = document.getElementById('settings-sound').checked;
-  demoOn = document.getElementById('settings-demo').checked;
   soundToggle.querySelector('.game-header__icon').textContent = soundOn ? '🔊' : '🔇';
   saveSettings();
   const prevChar = currentChar;
@@ -1164,26 +1035,12 @@ settingsApply.addEventListener('pointerdown', (e) => {
   } else {
     setLetter(0);
   }
-  updateStickerView();
   hideSettings();
 });
 
 settingsCancel.addEventListener('pointerdown', (e) => {
   e.stopPropagation();
   hideSettings();
-});
-
-// --- Sticker book ----------------------------------------------------------
-stickerClose.addEventListener('pointerdown', (e) => {
-  e.stopPropagation();
-  hideStickerBook();
-});
-
-stickerReset.addEventListener('pointerdown', (e) => {
-  e.stopPropagation();
-  completedLetters = [];
-  saveProgress(completedLetters);
-  updateStickerView();
 });
 
 helpClose.addEventListener('pointerdown', (e) => {
@@ -1194,17 +1051,17 @@ helpClose.addEventListener('pointerdown', (e) => {
 // --- Help text -------------------------------------------------------------
 const HELP_TEXT = {
   id: [
-    ['👆', 'Telusuri huruf dengan jari telunjuk'],
-    ['🔢', 'Mulai dari angka 1, lalu ikuti angkanya berurutan'],
-    ['➡️', 'Seret mengikuti garis putus-putus searah panah'],
-    ['🖐️', 'Sisi tangan tidak masalah — hanya jari yang diproses'],
+    ['👆', 'Genggam bola hijau di garis terang'],
+    ['➡️', 'Seret bola mengikuti arah panah di atasnya'],
+    ['🔵', 'Garis yang sudah dilewati berubah jadi biru'],
+    ['🔢', 'Selesaikan satu goresan, lalu lanjut ke goresan berikutnya'],
     ['🎁', 'Selesaikan huruf untuk membuka kejutan!']
   ],
   en: [
-    ['👆', 'Trace the letter with your index finger'],
-    ['🔢', 'Start at number 1, then follow the numbers in order'],
-    ['➡️', 'Drag along the dashed line in the direction of the arrow'],
-    ['🖐️', 'Resting hands are ignored — only your finger counts'],
+    ['👆', 'Grab the green ball on the bright line'],
+    ['➡️', 'Drag the ball along, following the arrow on it'],
+    ['🔵', 'The line you passed turns blue'],
+    ['🔢', 'Finish one stroke, then move on to the next'],
     ['🎁', 'Finish a letter to unlock a surprise!']
   ]
 };
@@ -1231,20 +1088,11 @@ function init() {
   caseMode = s.case || 'both';
   soundOn = s.sound !== undefined ? s.sound : true;
   lang = s.lang || 'id';
-  demoOn = s.demo !== undefined ? s.demo : true;
   soundToggle.querySelector('.game-header__icon').textContent = soundOn ? '🔊' : '🔇';
-  completedLetters = getProgress();
   buildSequence();
   renderHelp();
   resize();
   setLetter(0);
-  updateStickerView();
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => {
-      refreshScreenStrokes();
-      buildGuide();
-    });
-  }
   requestAnimationFrame(frame);
 }
 
